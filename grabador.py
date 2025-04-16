@@ -27,9 +27,9 @@ with dai.Device(pipeline) as device:
     fps = 10  # FPS de la cámara
     segment_duration = 15  # Duración del video en segundos (1 minuto)
 
-    # Crear el archivo de video
-    fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    out = cv2.VideoWriter('output.avi', fourcc, fps, (frame_width, frame_height))
+    # Crear el archivo de video en formato MP4
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Cambiar a 'mp4v' para MP4
+    out = cv2.VideoWriter('output.mp4', fourcc, fps, (frame_width, frame_height))  # Cambiar extensión a .mp4
 
     start_time = time.time()
 
