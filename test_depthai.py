@@ -7,7 +7,7 @@ pipeline = dai.Pipeline()
 cam = pipeline.createColorCamera()
 cam.setBoardSocket(dai.CameraBoardSocket.RGB)
 cam.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
-cam.setFps(30)
+cam.setFps(10)
 
 # Crear salida
 xout = pipeline.createXLinkOut()
