@@ -1,11 +1,4 @@
 import depthai as dai
-import cv2
-import pygame
-import numpy as np
-
-# Inicializa pygame
-pygame.init()
-screen = pygame.display.set_mode((640, 480))  # Ajusta el tamaño de la pantalla
 
 # Crear la pipeline
 pipeline = dai.Pipeline()
@@ -30,19 +23,7 @@ with dai.Device(pipeline) as device:
         # Captura el frame
         frame = q.get().getCvFrame()
 
-        # Convierte el frame a formato RGB
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-        # Convierte la imagen a superficie de pygame
-        frame_surface = pygame.surfarray.make_surface(frame_rgb)
-
         # Mostrar el frame
-        screen.blit(frame_surface, (0, 0))
-        pygame.display.update()
-
-        # Verifica si se presionó la tecla de salir
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                exit()
-
+        # cv2.imshow("frame", frame)
+        # if cv2.waitKey(1) == ord('q'):
+            # break
