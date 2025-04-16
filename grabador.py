@@ -1,53 +1,48 @@
 import depthai as dai
 import cv2
-import time
-import os
+import pygame
+import numpy as np
 
-usb_path = '/media/usb/videos/'
-os.makedirs(usb_path, exist_ok=True)
+# Inicializa pygame
+pygame.init()
+screen = pygame.display.set_mode((640, 480))  # Ajusta el tamaño de la pantalla
 
-segment_duration = 60  # 1 minutos en segundos
-
+# Crear la pipeline
 pipeline = dai.Pipeline()
 
+# Crear cámara RGB
 cam = pipeline.createColorCamera()
 cam.setBoardSocket(dai.CameraBoardSocket.RGB)
 cam.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
 cam.setFps(30)
 
+# Crear salida
 xout = pipeline.createXLinkOut()
 xout.setStreamName("video")
 cam.video.link(xout.input)
 
+# Ejecutar el dispositivo
 with dai.Device(pipeline) as device:
-    video_queue = device.getOutputQueue(name="video", maxSize=30, blocking=True)
-
-    file_count = 0
-    start_time = time.time()
-    filename = os.path.join(usb_path, f"segment_{file_count}.avi")
-    writer = None
+    # Obtener la cola de salida
+    q = device.getOutputQueue(name="video", maxSize=30, blocking=True)
 
     while True:
-        frame = video_queue.get().getCvFrame()
+        # Captura el frame
+        frame = q.get().getCvFrame()
 
-        if writer is None:
-            height, width, _ = frame.shape
-            writer = cv2.VideoWriter(filename, cv2.VideoWriter_fourcc(*'XVID'), 30, (width, height))
+        # Convierte el frame a formato RGB
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-        writer.write(frame)
+        # Convierte la imagen a superficie de pygame
+        frame_surface = pygame.surfarray.make_surface(frame_rgb)
 
-        if time.time() - start_time >= segment_duration:
-            writer.release()
-            file_count += 1
-            filename = os.path.join(usb_path, f"segment_{file_count}.avi")
-            writer = cv2.VideoWriter(filename, cv2.VideoWriter_fourcc(*'XVID'), 30, (width, height))
-            start_time = time.time()
+        # Mostrar el frame
+        screen.blit(frame_surface, (0, 0))
+        pygame.display.update()
 
-        # Puedes quitar esto si no tienes monitor conectado al Pi
-        cv2.imshow("Preview", frame)
-        if cv2.waitKey(1) == ord('q'):
-            break
+        # Verifica si se presionó la tecla de salir
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
 
-    if writer:
-        writer.release()
-    cv2.destroyAllWindows()
