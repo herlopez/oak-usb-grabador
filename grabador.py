@@ -41,9 +41,9 @@ with dai.Device(pipeline) as device:
         out.write(frame)
 
         # Mostrar el frame (opcional)
-        cv2.imshow("frame", frame)
-        if cv2.waitKey(1) == ord('q'):
-            break
+        # cv2.imshow("frame", frame)
+        # if cv2.waitKey(1) == ord('q'):
+        #     break
 
         # Verificar si ha pasado 1 minuto
         if time.time() - start_time >= segment_duration:
