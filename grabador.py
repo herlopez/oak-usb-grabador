@@ -6,7 +6,7 @@ import os
 usb_path = '/media/usb/videos/'
 os.makedirs(usb_path, exist_ok=True)
 
-segment_duration = 600  # 10 minutos en segundos
+segment_duration = 60  # 1 minutos en segundos
 
 pipeline = dai.Pipeline()
 
