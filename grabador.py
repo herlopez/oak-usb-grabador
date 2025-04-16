@@ -25,7 +25,7 @@ with dai.Device(pipeline) as device:
     frame_width = 1920  # Ancho del frame (1080p)
     frame_height = 1080  # Alto del frame (1080p)
     fps = 10  # FPS de la cámara
-    segment_duration = 15  # Duración del video en segundos (1 minuto)
+    segment_duration = 60  # Duración del video en segundos (1 minuto)
 
     # Crear el archivo de video en formato MP4
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Cambiar a 'mp4v' para MP4
