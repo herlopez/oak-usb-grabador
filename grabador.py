@@ -1,6 +1,7 @@
 import depthai as dai
 import cv2
 import time
+from datetime import datetime
 
 # Crear la pipeline
 pipeline = dai.Pipeline()
@@ -24,34 +25,34 @@ with dai.Device(pipeline) as device:
     # Configuración del grabador de video
     frame_width = 1920  # Ancho del frame (1080p)
     frame_height = 1080  # Alto del frame (1080p)
-    fps = 10  # FPS de la cámara
+    fps = 15  # FPS de la cámara
     segment_duration = 60  # Duración del video en segundos (1 minuto)
 
-    # Crear el archivo de video en formato MP4
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Cambiar a 'mp4v' para MP4
-    out = cv2.VideoWriter('output.mp4', fourcc, fps, (frame_width, frame_height))  # Cambiar extensión a .mp4
+    while True:
+        # Generar nombre de archivo con fecha y hora
+        now = datetime.now()
+        filename = now.strftime("/mnt/nvme/output_%Y%m%d_%H%M%S.mp4")
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter(filename, fourcc, fps, (frame_width, frame_height))
 
-    start_time = time.time()
+        start_time = time.time()
+        print(f"Grabando: {filename}")
 
-    try:
-        while True:
-            # Captura el frame
-            frame = q.get().getCvFrame()
+        try:
+            while True:
+                frame = q.get().getCvFrame()
+                out.write(frame)
 
-            # Escribir el frame en el archivo de video
-            out.write(frame)
+                # Mostrar el frame (opcional)
+                # cv2.imshow("frame", frame)
+                # if cv2.waitKey(1) == ord('q'):
+                #     break
 
-            # Mostrar el frame (opcional)
-            # cv2.imshow("frame", frame)
-            # if cv2.waitKey(1) == ord('q'):
-            #     break
+                if time.time() - start_time >= segment_duration:
+                    print("Grabación de 1 minuto completada.")
+                    break
+        finally:
+            out.release()
+            # cv2.destroyAllWindows()  # Solo si usas imshow
 
-            # Verificar si ha pasado 1 minuto
-            if time.time() - start_time >= segment_duration:
-                print("Grabación de 1 minuto completada.")
-                break
-    finally:
-        # Liberar recursos
-        out.release()
-        cv2.destroyAllWindows()
-        print("Recursos liberados correctamente.")
+        # Aquí el ciclo continúa y se crea un nuevo archivo con nuevo nombre
