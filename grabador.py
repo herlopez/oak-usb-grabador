@@ -52,7 +52,7 @@ with dai.Device(pipeline) as device:
     # Configuración del grabador de video
     frame_width = 1920  # Ancho del frame (1080p)
     frame_height = 1080  # Alto del frame (1080p)
-    fps = 15  # FPS de la cámara
+    fps = 30  # FPS de la cámara
     segment_duration = 60  # Duración del video en segundos (1 minuto)
 
     while True:
