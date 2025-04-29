@@ -65,8 +65,7 @@ try:
         with open(log_file_path, "a") as log_file:
             log_file.write(f"{timestamp} - Grabacion directa a {output_file_mp4}\n")
 
-        # Esperar hasta el próximo minuto exacto antes de iniciar la siguiente grabación
-        esperar_hasta_proximo_minuto()
+        # NO esperar aquí, la siguiente grabación inicia inmediatamente
 
 except KeyboardInterrupt:
     print("Grabacion continua detenida por el usuario.")
