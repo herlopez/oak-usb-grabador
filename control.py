@@ -3,6 +3,7 @@
 
 import subprocess
 import time
+import psutil  # Importa psutil para verificar procesos
 import os
 
 def ejecutar_grabador():
@@ -27,13 +28,20 @@ def ejecutar_cortador():
         with open("errores.log", "a") as log_file:
             log_file.write(f"Error al iniciar el cortador: {e}\n")
 
+def verificar_grabador_en_ejecucion():
+    """Verifica si el grabador está en ejecución."""
+    for p in psutil.process_iter(attrs=['name', 'cmdline']):
+        if "python3" in p.info['name'] and "grabador.py" in p.info['cmdline']:
+            return True
+    return False
+
 def main():
     print("Iniciando grabación y corte en paralelo...")
     ejecutar_grabador()  # Inicia el grabador en segundo plano
     time.sleep(2)  # Espera un poco para asegurar que el grabador esté en ejecución
 
     # Verificar si el grabador se está ejecutando correctamente
-    if not any(p.name() == "python3" and "grabador.py" in p.cmdline() for p in subprocess.process_iter()):
+    if not verificar_grabador_en_ejecucion():
         print("Error: El grabador no se inició correctamente.")
         with open("errores.log", "a") as log_file:
             log_file.write("Error: El grabador no se inició correctamente.\n")
