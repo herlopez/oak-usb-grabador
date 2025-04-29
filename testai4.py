@@ -9,7 +9,7 @@ import shutil
 
 # CONFIGURACIÓN
 BASE_OUTPUT_DIR = "/media/hlopez/76E8-CACF1/video"
-SEGMENT_DURATION_MS = 600000  # 10 minuto
+SEGMENT_DURATION_MS = 300000  # 10 minuto
 MIN_DISK_FREE_GB = 5          # Espacio mínimo libre en GB para seguir grabando
 REINTENTOS_GRABACION = 3      # Número de reintentos si falla grabación
 ANCHO = "1920"
@@ -18,13 +18,19 @@ FRAMERATE = "10"
 
 # FUNCIONES
 
-def esperar_hasta_inicio_de_minuto():
-    """Espera hasta el siguiente minuto exacto."""
+def esperar_hasta_proximo_multiplo_5():
+    """Espera hasta el próximo múltiplo de 5 minutos (00, 05, 10, ...)."""
     now = datetime.datetime.now()
-    segundos_faltantes = 60 - now.second - now.microsecond / 1_000_000
-    if segundos_faltantes > 0:
-        print(f"Esperando {segundos_faltantes:.2f} segundos para sincronizar...")
-        time.sleep(segundos_faltantes)
+    minutos = now.minute
+    segundos = now.second
+    microsegundos = now.microsecond
+    minutos_a_sumar = (5 - (minutos % 5)) % 5
+    if minutos_a_sumar == 0 and (segundos > 0 or microsegundos > 0):
+        minutos_a_sumar = 5
+    proximo = (now + datetime.timedelta(minutes=minutos_a_sumar)).replace(second=0, microsecond=0)
+    espera = (proximo - now).total_seconds()
+    print(f"Esperando {espera:.2f} segundos para sincronizar al próximo múltiplo de 5 minutos...")
+    time.sleep(espera)
 
 def espacio_disponible_gb(path):
     """Calcula espacio libre en GB."""
@@ -67,7 +73,7 @@ try:
     print("Inicializando grabación continua...")
     escribir_log("Inicio del sistema de grabación continua.")
 
-    esperar_hasta_inicio_de_minuto()
+    esperar_hasta_proximo_multiplo_5()  # Espera antes de la primera grabación
 
     while True:
         now = datetime.datetime.now()
