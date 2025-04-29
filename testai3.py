@@ -60,7 +60,11 @@ try:
         print(f"Iniciando grabacion: {output_file_mp4}")
 
         # Iniciar la grabación en segundo plano
-        proceso = subprocess.Popen(record_command)
+        proceso = subprocess.Popen(
+            record_command,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
 
         # Esperar hasta (duración - solapamiento)
         time.sleep((segment_duration_ms - overlap_ms) / 1000)
