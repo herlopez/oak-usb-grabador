@@ -45,9 +45,10 @@ def cortar_minuto(archivo_grabacion, timestamp_actual):
         "-y",
         "-ss", "00:00:00",
         "-i", archivo_grabacion,
-        "-t", str(DURACION_CORTE),
+        "-t", str(DURACION_CORTE),  # 60 segundos
         "-c:v", "libx264",  # Usa un códec de video como libx264
         "-preset", "fast",  # Opcional: puedes ajustar el preset
+        "-f", "mp4",  # Asegúrate de que el formato de salida sea mp4
         salida_path
     ]
 
