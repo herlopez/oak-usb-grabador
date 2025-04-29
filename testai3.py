@@ -42,10 +42,11 @@ try:
             "rpicam-vid",
             "-t", "60000",  # 60000 ms = 1 minuto
             "-o", output_path_mp4,
-            "--post-process-file", "/usr/share/rpi-camera-assets/imx500_mobilenet_ssd.json",
+            # Quita la siguiente línea si no usas post-procesado
+            # "--post-process-file", "/usr/share/rpi-camera-assets/imx500_mobilenet_ssd.json",
             "--width", "1920",
             "--height", "1080",
-            "--framerate", "15",
+            "--framerate", "10",
             "--nopreview"
         ]
 
