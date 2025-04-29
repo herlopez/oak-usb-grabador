@@ -103,6 +103,7 @@ if __name__ == "__main__":
 
     while True:
         ahora = datetime.datetime.now()
+        print(f"[{ahora}] Esperando hasta el siguiente minuto...")
         siguiente_minuto = (ahora + datetime.timedelta(minutes=1)).replace(second=0, microsecond=0)
         espera = (siguiente_minuto - ahora).total_seconds()
         time.sleep(espera)
