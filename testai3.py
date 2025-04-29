@@ -23,7 +23,7 @@ def esperar_hasta_proximo_minuto():
 esperar_hasta_proximo_minuto()
 
 segment_duration_ms = 60000      # 1 minuto
-overlap_ms = 100                # 1 segundo de solapamiento
+overlap_ms = 0                # 1 segundo de solapamiento
 
 try:
     proceso_anterior = None
