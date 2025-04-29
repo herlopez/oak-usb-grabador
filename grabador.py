@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*- 
 
 import subprocess
 import datetime
@@ -33,7 +33,13 @@ def grabar_archivo_continuo():
             "--nopreview"
         ]
 
-        subprocess.run(comando)
+        result = subprocess.run(comando, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        if result.returncode != 0:
+            error_message = f"Error al grabar el archivo {output_file}: {result.stderr.decode()}"
+            print(error_message)
+            with open("errores.log", "a") as log_file:
+                log_file.write(f"{error_message}\n")
 
 if __name__ == "__main__":
     grabar_archivo_continuo()

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*- 
 
 import subprocess
 import datetime
@@ -46,17 +46,23 @@ def cortar_minuto(archivo_grabacion, timestamp_actual):
         "-ss", "00:00:00",
         "-i", archivo_grabacion,
         "-t", str(DURACION_CORTE),
-        "-c", "copy",
+        "-c:v", "libx264",  # Usa un códec de video como libx264
+        "-preset", "fast",  # Opcional: puedes ajustar el preset
         salida_path
     ]
 
-    result = subprocess.run(comando, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    result = subprocess.run(comando, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     # Verificar si el corte fue exitoso
-    if result.returncode != 0 or not os.path.exists(salida_path) or os.path.getsize(salida_path) < 1000:
+    if result.returncode != 0:
+        print(f"Error al ejecutar ffmpeg: {result.stderr.decode()}")
         error_message = f"Falló el corte del archivo {archivo_grabacion} en el minuto {timestamp_actual.strftime('%Y%m%d_%H%M%S')}"
         registrar_error(error_message)
-        return None  # No seguimos con thumbnail si falló
+        return None
+    elif not os.path.exists(salida_path) or os.path.getsize(salida_path) < 1000:
+        error_message = f"El archivo cortado {salida_path} es inválido (demasiado pequeño)."
+        registrar_error(error_message)
+        return None
     else:
         print(f"[OK] Corte creado: {salida_path}")
         return salida_path
@@ -75,7 +81,7 @@ def crear_thumbnail(video_path):
         thumbnail_path
     ]
 
-    result = subprocess.run(comando, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    result = subprocess.run(comando, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     if result.returncode == 0 and os.path.exists(thumbnail_path):
         print(f"[OK] Thumbnail creado: {thumbnail_path}")
