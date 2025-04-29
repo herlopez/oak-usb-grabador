@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3 NO
 # -*- coding: utf-8 -*-
 
 import subprocess
@@ -9,8 +9,8 @@ import shutil
 
 # CONFIGURACIÓN
 BASE_OUTPUT_DIR = "/media/hlopez/76E8-CACF1/video"
-SEGMENT_DURATION_MS = 60000  # 1 minuto
-MIN_DISK_FREE_GB = 2          # Espacio mínimo libre en GB para seguir grabando
+SEGMENT_DURATION_MS = 600000  # 10 minuto
+MIN_DISK_FREE_GB = 5          # Espacio mínimo libre en GB para seguir grabando
 REINTENTOS_GRABACION = 3      # Número de reintentos si falla grabación
 ANCHO = "1920"
 ALTO = "1080"
@@ -107,9 +107,6 @@ try:
         else:
             escribir_log(f"Grabación fallida: {output_file}")
             print(f"Error: grabación fallida después de {REINTENTOS_GRABACION} intentos.")
-
-        # Esperar hasta el próximo minuto
-        esperar_hasta_inicio_de_minuto()
 
 except KeyboardInterrupt:
     print("\nGrabación detenida manualmente.")
