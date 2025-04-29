@@ -69,9 +69,10 @@ with dai.Device(pipeline) as device:
     fps = 10
     segment_duration = 300  # 5 minutos en segundos
 
+    # Esperar hasta el próximo múltiplo de 5 minutos
+    esperar_hasta_proximo_multiplo_5()
+    
     while True:
-        # Esperar hasta el próximo múltiplo de 5 minutos
-        esperar_hasta_proximo_multiplo_5()
 
         # Gestionar espacio antes de grabar
         manage_disk_usage(VIDEO_DIR, MAX_USAGE_BYTES)
