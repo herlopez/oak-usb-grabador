@@ -22,7 +22,11 @@ def esperar_hasta_proximo_minuto():
 # Esperar hasta el próximo minuto exacto antes de iniciar el bucle (solo al inicio)
 esperar_hasta_proximo_minuto()
 
+segment_duration_ms = 60000      # 1 minuto
+overlap_ms = 100                # 1 segundo de solapamiento
+
 try:
+    proceso_anterior = None
     while True:
         now = datetime.datetime.now()
         fecha = now.strftime("%Y%m%d")
@@ -37,12 +41,11 @@ try:
         output_file_mp4 = f"video_{timestamp}.mp4"
         output_path_mp4 = os.path.join(output_dir, output_file_mp4)
 
-        # Definir el comando de grabacion (1 minuto = 60000 ms)
+        # Definir el comando de grabacion
         record_command = [
             "rpicam-vid",
-            "-t", "60000",  # 60000 ms = 1 minuto
+            "-t", str(segment_duration_ms),
             "-o", output_path_mp4,
-            # Quita la siguiente línea si no usas post-procesado
             # "--post-process-file", "/usr/share/rpi-camera-assets/imx500_mobilenet_ssd.json",
             "--width", "1920",
             "--height", "1080",
@@ -56,16 +59,21 @@ try:
 
         print(f"Iniciando grabacion: {output_file_mp4}")
 
-        # Ejecutar grabacion
-        subprocess.run(record_command, check=True)
+        # Iniciar la grabación en segundo plano
+        proceso = subprocess.Popen(record_command)
 
-        print(f"Grabacion finalizada: {output_file_mp4}")
+        # Esperar hasta (duración - solapamiento)
+        time.sleep((segment_duration_ms - overlap_ms) / 1000)
 
-        # Registrar en el log la grabacion directa
-        with open(log_file_path, "a") as log_file:
-            log_file.write(f"{timestamp} - Grabacion directa a {output_file_mp4}\n")
+        # Esperar a que termine la grabación anterior (si existe)
+        if proceso_anterior is not None:
+            proceso_anterior.wait()
+            print(f"Grabacion finalizada: {output_file_mp4}")
+            with open(log_file_path, "a") as log_file:
+                log_file.write(f"{timestamp} - Grabacion directa a {output_file_mp4}\n")
 
-        # NO esperar aquí, la siguiente grabación inicia inmediatamente
+        # El proceso actual será el anterior en la próxima vuelta
+        proceso_anterior = proceso
 
 except KeyboardInterrupt:
     print("Grabacion continua detenida por el usuario.")
