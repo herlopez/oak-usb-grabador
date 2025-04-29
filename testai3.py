@@ -8,9 +8,9 @@ import time
 
 # Directorio base de salida
 base_output_dir = "/media/hlopez/76E8-CACF1/video"
-
-# Crear (o abrir) archivo de log general
 log_file_path = os.path.join(base_output_dir, "log.txt")
+
+segment_duration_ms = 60000      # 1 minuto
 
 def esperar_hasta_proximo_minuto():
     now = datetime.datetime.now()
@@ -19,14 +19,12 @@ def esperar_hasta_proximo_minuto():
         print(f"Esperando {segundos_hasta_proximo_minuto:.2f} segundos para iniciar en el siguiente minuto exacto...")
         time.sleep(segundos_hasta_proximo_minuto)
 
-# Esperar hasta el próximo minuto exacto antes de iniciar el bucle (solo al inicio)
+# Esperar hasta el próximo minuto exacto antes de iniciar el bucle
 esperar_hasta_proximo_minuto()
 
-segment_duration_ms = 60000      # 1 minuto
-overlap_ms = 0                # 1 segundo de solapamiento
+procesos = []
 
 try:
-    proceso_anterior = None
     while True:
         now = datetime.datetime.now()
         fecha = now.strftime("%Y%m%d")
@@ -46,7 +44,6 @@ try:
             "rpicam-vid",
             "-t", str(segment_duration_ms),
             "-o", output_path_mp4,
-            # "--post-process-file", "/usr/share/rpi-camera-assets/imx500_mobilenet_ssd.json",
             "--width", "1920",
             "--height", "1080",
             "--framerate", "10",
@@ -65,21 +62,18 @@ try:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
         )
+        procesos.append((timestamp, proceso, output_file_mp4))
 
-        # Esperar hasta (duración - solapamiento)
-        time.sleep((segment_duration_ms - overlap_ms) / 1000)
+        # Esperar hasta el próximo segundo 00
+        esperar_hasta_proximo_minuto()
 
-        # Esperar a que termine la grabación anterior (si existe)
-        if proceso_anterior is not None:
-            proceso_anterior.wait()
-            print(f"Grabacion finalizada: {output_file_mp4}")
+        # Limpiar procesos viejos (esperar a que terminen)
+        while len(procesos) > 1:
+            old_timestamp, old_proc, old_file = procesos.pop(0)
+            old_proc.wait()
+            print(f"Grabacion finalizada: {old_file}")
             with open(log_file_path, "a") as log_file:
-                log_file.write(f"{timestamp} - Grabacion directa a {output_file_mp4}\n")
-
-        # El proceso actual será el anterior en la próxima vuelta
-        proceso_anterior = proceso
+                log_file.write(f"{old_timestamp} - Grabacion directa a {old_file}\n")
 
 except KeyboardInterrupt:
     print("Grabacion continua detenida por el usuario.")
-except subprocess.CalledProcessError as e:
-    print(f"Ocurrio un error durante la grabacion: {e}")
