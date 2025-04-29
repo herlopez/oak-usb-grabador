@@ -8,7 +8,7 @@ import time
 
 # Configuración
 BASE_OUTPUT_DIR = "/media/hlopez/76E8-CACF1/video/grabaciones"
-DURACION_SEGUNDOS_ARCHIVO = 3600  # 1 hora
+DURACION_SEGUNDOS_ARCHIVO = 300  # 1 hora
 
 def grabar_archivo_continuo():
     """Graba video continuo en bloques de 1 hora."""
