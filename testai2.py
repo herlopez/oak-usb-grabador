@@ -24,7 +24,7 @@ try:
         # Definir el comando de grabacion (directo a MP4)
         record_command = [
             "rpicam-vid",
-            "-t", "60000",  # 60000 ms = 1 minuto
+            "-t", "60000",  # 600000 ms = 10 minuto
             "-o", output_path_mp4,
             "--post-process-file", "/usr/share/rpi-camera-assets/imx500_mobilenet_ssd.json",
             "--width", "1920",
