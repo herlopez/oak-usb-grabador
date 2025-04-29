@@ -12,7 +12,6 @@ BASE_GRABACION_DIR = "/media/hlopez/76E8-CACF1/video/grabaciones"
 BASE_CORTE_DIR = "/media/hlopez/76E8-CACF1/video/minutos"
 DURACION_CORTE = 60  # 60 segundos
 
-# Archivo fuente que estás usando
 archivo_actual = None
 
 def encontrar_ultimo_archivo():
@@ -34,16 +33,44 @@ def cortar_minuto(archivo_grabacion, timestamp_actual):
 
     comando = [
         "ffmpeg",
-        "-y",  # Sobrescribir si existe
-        "-ss", "00:00:00", 
+        "-y",
+        "-ss", "00:00:00",
         "-i", archivo_grabacion,
         "-t", str(DURACION_CORTE),
-        "-c", "copy",  # No recodificar
+        "-c", "copy",
         salida_path
     ]
 
-    subprocess.run(comando, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    print(f"Corte creado: {salida_path}")
+    result = subprocess.run(comando, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    # Verificar si el corte fue exitoso
+    if result.returncode != 0 or not os.path.exists(salida_path) or os.path.getsize(salida_path) < 1000:
+        print(f"[ERROR] Falló el corte: {salida_path}")
+        return None  # No seguimos con thumbnail si falló
+    else:
+        print(f"[OK] Corte creado: {salida_path}")
+        return salida_path
+
+def crear_thumbnail(video_path):
+    """Crea una miniatura (thumbnail .jpg) a partir de un video."""
+    thumbnail_path = video_path.replace(".mp4", ".jpg")
+
+    comando = [
+        "ffmpeg",
+        "-y",
+        "-i", video_path,
+        "-ss", "00:00:01",  # Captura en el segundo 1
+        "-vframes", "1",
+        "-vf", "scale=320:-1",  # Escalar a 320px ancho, altura proporcional
+        thumbnail_path
+    ]
+
+    result = subprocess.run(comando, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    if result.returncode == 0 and os.path.exists(thumbnail_path):
+        print(f"[OK] Thumbnail creado: {thumbnail_path}")
+    else:
+        print(f"[ERROR] Falló creación de thumbnail para: {video_path}")
 
 def borrar_archivo(archivo):
     """Elimina un archivo de grabación."""
@@ -52,7 +79,7 @@ def borrar_archivo(archivo):
         print(f"Archivo grande eliminado: {archivo}")
 
 if __name__ == "__main__":
-    print("Iniciando corte continuo cada minuto...")
+    print("Iniciando corte continuo PRO cada minuto...")
 
     while True:
         ahora = datetime.datetime.now()
@@ -62,13 +89,15 @@ if __name__ == "__main__":
 
         nuevo_archivo = encontrar_ultimo_archivo()
 
-        # Si cambió el archivo (ejemplo: pasó de una hora a otra), elimina el anterior
+        # Si cambió el archivo (ejemplo: nueva hora), borrar anterior
         if archivo_actual and nuevo_archivo != archivo_actual:
             borrar_archivo(archivo_actual)
 
-        # Actualiza archivo actual
         archivo_actual = nuevo_archivo
 
-        # Cortar minuto actual
         if archivo_actual:
-            cortar_minuto(archivo_actual, siguiente_minuto - datetime.timedelta(minutes=1))
+            corte_path = cortar_minuto(archivo_actual, siguiente_minuto - datetime.timedelta(minutes=1))
+
+            # Solo si se cortó bien, generamos el thumbnail
+            if corte_path:
+                crear_thumbnail(corte_path)
