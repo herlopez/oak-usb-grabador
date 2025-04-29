@@ -9,7 +9,7 @@ def ejecutar_grabador():
     """Ejecuta el grabador de video continuo."""
     try:
         print("Iniciando grabador...")
-        subprocess.Popen(["python3", "grabadordevideo.py"])  # Asegúrate de que el nombre de tu archivo sea correcto
+        subprocess.Popen(["python3", "grabador.py"])  # Asegúrate de que el nombre de tu archivo sea correcto
         print("Grabador iniciado.")
     except Exception as e:
         print(f"Error al iniciar el grabador: {e}")
@@ -20,7 +20,7 @@ def ejecutar_cortador():
     """Ejecuta el cortador de video."""
     try:
         print("Iniciando cortador...")
-        subprocess.Popen(["python3", "cortadordevideo.py"])  # Asegúrate de que el nombre de tu archivo sea correcto
+        subprocess.Popen(["python3", "cortador.py"])  # Asegúrate de que el nombre de tu archivo sea correcto
         print("Cortador iniciado.")
     except Exception as e:
         print(f"Error al iniciar el cortador: {e}")
@@ -33,7 +33,7 @@ def main():
     time.sleep(2)  # Espera un poco para asegurar que el grabador esté en ejecución
 
     # Verificar si el grabador se está ejecutando correctamente
-    if not any(p.name() == "python3" and "grabadordevideo.py" in p.cmdline() for p in subprocess.process_iter()):
+    if not any(p.name() == "python3" and "grabador.py" in p.cmdline() for p in subprocess.process_iter()):
         print("Error: El grabador no se inició correctamente.")
         with open("errores.log", "a") as log_file:
             log_file.write("Error: El grabador no se inició correctamente.\n")
