@@ -85,7 +85,8 @@ with dai.Device(pipeline) as device:
 
         for detection in in_detections.detections:
             print("Label:", detection.label, "Conf:", detection.confidence)
-            if detection.label == 0:  # Persona en COCO                x1 = int(detection.xmin * frame.shape[1])
+            if detection.label == 0:  # Persona en COCO
+                x1 = int(detection.xmin * frame.shape[1])
                 y1 = int(detection.ymin * frame.shape[0])
                 x2 = int(detection.xmax * frame.shape[1])
                 y2 = int(detection.ymax * frame.shape[0])
