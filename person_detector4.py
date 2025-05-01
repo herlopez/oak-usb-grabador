@@ -15,9 +15,9 @@ if not cap.isOpened():
     exit()
 
 # ROIs
-roi_left = (50, 200, 150, 250)
-roi_center = (500, 200, 600, 300)
-roi_right = (650, 200, 800, 400)
+roi_left = (100, 550, 300, 250)
+roi_center = (880, 400, 100, 150)
+roi_right = (1200, 300, 300, 200)
 
 tracker = Sort(max_age=30, min_hits=3, iou_threshold=0.3)
 

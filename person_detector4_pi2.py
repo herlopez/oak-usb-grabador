@@ -5,10 +5,14 @@ from sort.sort import Sort
 import time
 import blobconverter
 
-# --- Configuración de ROIs ---
-roi_left = (50, 100, 80, 100)
-roi_center = (200, 100, 80, 100)
-roi_right = (300, 150, 120, 150)
+# Define los ROIs en la resolución original de la cámara
+roi_left = (100, 550, 300, 250)
+roi_center = (880, 400, 100, 150)
+roi_right = (1200, 300, 300, 200)
+
+original_width  = 1280  # o la resolución original de tu cámara
+original_height = 720
+
 
 # --- Inicializar SORT tracker ---
 tracker = Sort(max_age=30, min_hits=3, iou_threshold=0.3)
@@ -88,7 +92,30 @@ with dai.Device(pipeline) as device:
         in_video = video_queue.get()
         in_detections = detections_queue.get()
 
-        frame = in_video.getCvFrame()
+        frame = in_video.getCvFrame()        
+        print("Frame shape:", frame.shape)
+        # Calcula el escalado para el frame actual
+        scale_x = frame.shape[1] / original_width
+        scale_y = frame.shape[0] / original_height
+
+        roi_left = (
+            int(roi_left_orig[0] * scale_x),
+            int(roi_left_orig[1] * scale_y),
+            int(roi_left_orig[2] * scale_x),
+            int(roi_left_orig[3] * scale_y)
+        )
+        roi_center = (
+            int(roi_center_orig[0] * scale_x),
+            int(roi_center_orig[1] * scale_y),
+            int(roi_center_orig[2] * scale_x),
+            int(roi_center_orig[3] * scale_y)
+        )
+        roi_right = (
+            int(roi_right_orig[0] * scale_x),
+            int(roi_right_orig[1] * scale_y),
+            int(roi_right_orig[2] * scale_x),
+            int(roi_right_orig[3] * scale_y)
+        )
         detections = []
 
         for detection in in_detections.detections:
