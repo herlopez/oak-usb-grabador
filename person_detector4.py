@@ -14,9 +14,11 @@ roi_right = (1100, 300, 300, 300)
 tracker = Sort(max_age=30, min_hits=3, iou_threshold=0.3)
 
 # --- Descarga automática del modelo desde la zoo ---
-model_path = blobconverter.from_zoo(name="yolop_320x320",
-                                    zoo_type="depthai",
-                                    shaves=6)
+model_path = blobconverter.from_zoo(
+    name="yolov5s_coco_416x416",
+    zoo_type="depthai",
+    shaves=6
+)
 
 # --- Pipeline DepthAI ---
 pipeline = dai.Pipeline()
