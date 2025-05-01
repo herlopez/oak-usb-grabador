@@ -6,9 +6,9 @@ import time
 import blobconverter
 
 # Define los ROIs en la resolución original de la cámara
-roi_left = (100, 550, 300, 250)
-roi_center = (880, 400, 100, 150)
-roi_right = (1200, 300, 300, 200)
+roi_left_orig   = (100, 550, 300, 250)
+roi_center_orig = (880, 400, 100, 150)
+roi_right_orig  = (1200, 300, 300, 200)
 
 original_width  = 1280  # o la resolución original de tu cámara
 original_height = 720
