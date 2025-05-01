@@ -63,7 +63,7 @@ xout_rgb = pipeline.createXLinkOut()
 xout_nn = pipeline.createXLinkOut()
 xout_rgb.setStreamName("video")
 xout_nn.setStreamName("detections")
-cam_rgb.video.link(xout_rgb.input)  # Para mostrar el video original
+manip.out.link(xout_rgb.input)  # Muestra la imagen que entra al modelo
 detection_nn.out.link(xout_nn.input)
 
 # --- Inicializar dispositivo ---
