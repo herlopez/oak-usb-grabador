@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 
 # ROI fija (ajusta estos valores a tu necesidad)
-x1, y1, x2, y2 = 50, 50, 300, 300  # ejemplo: ROI de 100x100
+x1, y1, x2, y2 = 200, 150, 300, 250  # ejemplo: ROI de 100x100
 roi_selected = True  # Siempre activa
 
 # Crear pipeline
