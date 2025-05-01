@@ -93,7 +93,7 @@ with dai.Device(pipeline) as device:
         in_detections = detections_queue.get()
 
         frame = in_video.getCvFrame()        
-        print("Frame shape:", frame.shape)
+
         # Calcula el escalado para el frame actual
         scale_x = frame.shape[1] / original_width
         scale_y = frame.shape[0] / original_height
