@@ -37,7 +37,7 @@ cam_rgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
 # ImageManip para resize sin mantener aspecto (es lo que espera el modelo YOLOv5n)
 manip = pipeline.createImageManip()
 manip.initialConfig.setResize(416, 416)
-manip.initialConfig.setKeepAspectRatio(False)
+manip.initialConfig.setKeepAspectRatio(True)
 manip.initialConfig.setFrameType(dai.ImgFrame.Type.BGR888p)
 manip.setMaxOutputFrameSize(416 * 416 * 3)  # <--- ¡clave para evitar el error de tamaño!
 
