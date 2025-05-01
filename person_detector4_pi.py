@@ -25,7 +25,7 @@ pipeline = dai.Pipeline()
 
 # Cámara color
 cam_rgb = pipeline.createColorCamera()
-cam_rgb.setPreviewSize(1280, 720)
+cam_rgb.setPreviewSize(416, 416)  # <-- Debe coincidir con el modelo
 cam_rgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
 cam_rgb.setInterleaved(False)
 cam_rgb.setFps(10)
