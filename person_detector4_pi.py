@@ -3,10 +3,10 @@ import cv2
 import numpy as np
 from sort.sort import Sort
 import time
-import blobconverter  # <--- IMPORTANTE
+import blobconverter
 
 # --- Configuración de ROIs ---
-roi_left = (50, 200, 150, 250)
+roi_left = (150, 200, 300, 300)
 roi_center = (500, 200, 600, 300)
 roi_right = (650, 200, 800, 400)
 
@@ -51,17 +51,6 @@ detection_nn.setAnchorMasks({
     "side26": [3,4,5],
     "side13": [6,7,8],
 })
-
-# NN
-detection_nn = pipeline.createYoloDetectionNetwork()
-detection_nn.setConfidenceThreshold(0.5)
-detection_nn.setNumClasses(80)
-detection_nn.setCoordinateSize(4)
-detection_nn.setIouThreshold(0.5)
-detection_nn.setBlobPath(model_path)  # <--- AQUÍ USAS EL BLOB DESCARGADO
-# detection_nn.setInputSize(416, 416)  # <--- ELIMINA ESTA LÍNEA
-detection_nn.input.setBlocking(False)
-detection_nn.input.setQueueSize(1)
 
 # Enlaces
 cam_rgb.preview.link(detection_nn.input)
