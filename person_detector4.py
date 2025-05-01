@@ -37,7 +37,7 @@ detection_nn.setNumClasses(80)
 detection_nn.setCoordinateSize(4)
 detection_nn.setIouThreshold(0.5)
 detection_nn.setBlobPath(model_path)  # <--- AQUÍ USAS EL BLOB DESCARGADO
-detection_nn.setInputSize(320, 320)   # <--- Debe coincidir con el modelo elegido
+detection_nn.setInputSize(416, 416)
 detection_nn.input.setBlocking(False)
 detection_nn.input.setQueueSize(1)
 
