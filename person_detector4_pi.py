@@ -30,6 +30,28 @@ cam_rgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
 cam_rgb.setInterleaved(False)
 cam_rgb.setFps(10)
 
+# --- NN ---
+detection_nn = pipeline.createYoloDetectionNetwork()
+detection_nn.setConfidenceThreshold(0.5)
+detection_nn.setNumClasses(80)
+detection_nn.setCoordinateSize(4)
+detection_nn.setIouThreshold(0.5)
+detection_nn.setBlobPath(model_path)
+detection_nn.input.setBlocking(False)
+detection_nn.input.setQueueSize(1)
+
+# --- Anchors y anchor masks para YOLOv5n 416x416 COCO ---
+detection_nn.setAnchors([
+    10,13, 16,30, 33,23,
+    30,61, 62,45, 59,119,
+    116,90, 156,198, 373,326
+])
+detection_nn.setAnchorMasks({
+    "side52": [0,1,2],
+    "side26": [3,4,5],
+    "side13": [6,7,8],
+})
+
 # NN
 detection_nn = pipeline.createYoloDetectionNetwork()
 detection_nn.setConfidenceThreshold(0.5)
