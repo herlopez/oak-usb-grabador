@@ -15,7 +15,7 @@ tracker = Sort(max_age=30, min_hits=3, iou_threshold=0.3)
 
 # --- Descarga automática del modelo desde la zoo ---
 model_path = blobconverter.from_zoo(
-    name="yolov5n_coco_416x416",
+    name="yolov4_coco_416x416",
     zoo_type="depthai",
     shaves=6
 )
