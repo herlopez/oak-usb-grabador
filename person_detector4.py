@@ -3,12 +3,12 @@ import cv2
 import numpy as np
 from sort.sort import Sort
 import time
-import blobconverter  # <--- IMPORTANTE
+import blobconverter
 
 # --- Configuración de ROIs ---
-roi_left = (150, 500, 250, 250)
-roi_center = (800, 400, 200, 200)
-roi_right = (1100, 300, 300, 300)
+roi_left = (150, 300, 250, 50)
+roi_center = (800, 200, 200, 100)
+roi_right = (1100, 100, 300, 100)
 
 # --- Inicializar SORT tracker ---
 tracker = Sort(max_age=30, min_hits=3, iou_threshold=0.3)
@@ -36,8 +36,7 @@ detection_nn.setConfidenceThreshold(0.5)
 detection_nn.setNumClasses(80)
 detection_nn.setCoordinateSize(4)
 detection_nn.setIouThreshold(0.5)
-detection_nn.setBlobPath(model_path)  # <--- AQUÍ USAS EL BLOB DESCARGADO
-# detection_nn.setInputSize(416, 416)  # <--- ELIMINA ESTA LÍNEA
+detection_nn.setBlobPath(model_path)
 detection_nn.input.setBlocking(False)
 detection_nn.input.setQueueSize(1)
 
@@ -123,7 +122,7 @@ with dai.Device(pipeline) as device:
 
         # Reporte cada 5 segundos
         if frame_count >= intervalo:
-            ultimo_reporte_texto = f"{time.strftime('%H:%M:%S')} Personas únicas en 5s: {len(personas_intervalo)}"
+            ultimo_reporte_texto = f"{time.strftime('%H:%M:%S')} Personas: {len(personas_intervalo)}"
             print(f"[{ultimo_reporte_texto}] (IDs: {sorted(personas_intervalo)})")
             personas_intervalo.clear()
             frame_count = 0
