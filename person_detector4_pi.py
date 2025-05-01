@@ -33,8 +33,8 @@ cam_rgb.setFps(10)
 # ImageManip para resize con aspect ratio (letterbox)
 manip = pipeline.createImageManip()
 manip.initialConfig.setResize(416, 416)
-manip.initialConfig.setKeepAspectRatio(True)
-manip.initialConfig.setFrameType(dai.RawImgFrame.Type.BGR888)  # <-- ¡Agrega esto!
+manip.initialConfig.setKeepAspectRatio(False)
+manip.initialConfig.setFrameType(dai.RawImgFrame.Type.BGR888)
 
 cam_rgb.video.link(manip.inputImage)
 
