@@ -34,7 +34,7 @@ cam_rgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
 manip = pipeline.createImageManip()
 manip.initialConfig.setResize(416, 416)
 manip.initialConfig.setKeepAspectRatio(False)
-manip.initialConfig.setFrameType(dai.RawImgFrame.Type.BGR888)
+manip.initialConfig.setFrameType(dai.ImgFrame.Type.BGR888p)
 manip.setMaxOutputFrameSize(416 * 416 * 3)  # <--- ¡clave para evitar el error de tamaño!
 
 cam_rgb.video.link(manip.inputImage)
