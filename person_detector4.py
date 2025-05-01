@@ -22,7 +22,7 @@ roi_right = (1200, 300, 300, 200)
 tracker = Sort(max_age=30, min_hits=3, iou_threshold=0.3)
 
 cv2.namedWindow('Detection', cv2.WINDOW_NORMAL)
-cv2.resizeWindow('Detection', 1280, 720)
+cv2.resizeWindow('Detection', 1920, 1080)
 
 fps = cap.get(cv2.CAP_PROP_FPS)
 intervalo = int(fps * 5)

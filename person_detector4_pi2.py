@@ -10,8 +10,9 @@ roi_left_orig   = (100, 550, 300, 250)
 roi_center_orig = (880, 400, 100, 150)
 roi_right_orig  = (1200, 300, 300, 200)
 
-original_width  = 1280  # resolución original de la cámara
-original_height = 720
+original_width = 1920
+original_height = 1080
+
 
 # --- Inicializar SORT tracker ---
 tracker = Sort(max_age=30, min_hits=3, iou_threshold=0.3)
@@ -33,12 +34,12 @@ cam_rgb.setInterleaved(False)
 cam_rgb.setFps(10)
 cam_rgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
 
-# ImageManip para resize CON aspect ratio (letterbox)
+# ImageManip para resize sin mantener aspecto (es lo que espera el modelo YOLOv5n)
 manip = pipeline.createImageManip()
 manip.initialConfig.setResize(416, 416)
 manip.initialConfig.setKeepAspectRatio(True)
 manip.initialConfig.setFrameType(dai.ImgFrame.Type.BGR888p)
-manip.setMaxOutputFrameSize(416 * 416 * 3)
+manip.setMaxOutputFrameSize(416 * 416 * 3)  # <--- ¡clave para evitar el error de tamaño!
 
 cam_rgb.video.link(manip.inputImage)
 
@@ -91,31 +92,34 @@ with dai.Device(pipeline) as device:
         in_video = video_queue.get()
         in_detections = detections_queue.get()
 
-        frame = in_video.getCvFrame()
+        frame = in_video.getCvFrame()        
 
-        # --- Escalado y compensación de offset por letterbox ---
-        frame_h, frame_w = frame.shape[:2]
-        scale = min(frame_w / original_width, frame_h / original_height)
-        useful_w = int(original_width * scale)
-        useful_h = int(original_height * scale)
-        offset_x = (frame_w - useful_w) // 2
-        offset_y = (frame_h - useful_h) // 2
+        # Calcula el escalado para el frame actual
+        scale_x = frame.shape[1] / original_width
+        scale_y = frame.shape[0] / original_height
 
-        def scale_and_offset_roi(roi_orig):
-            x = int(roi_orig[0] * scale) + offset_x
-            y = int(roi_orig[1] * scale) + offset_y
-            w = int(roi_orig[2] * scale)
-            h = int(roi_orig[3] * scale)
-            return (x, y, w, h)
-
-        roi_left   = scale_and_offset_roi(roi_left_orig)
-        roi_center = scale_and_offset_roi(roi_center_orig)
-        roi_right  = scale_and_offset_roi(roi_right_orig)
-
+        roi_left = (
+            int(roi_left_orig[0] * scale_x),
+            int(roi_left_orig[1] * scale_y),
+            int(roi_left_orig[2] * scale_x),
+            int(roi_left_orig[3] * scale_y)
+        )
+        roi_center = (
+            int(roi_center_orig[0] * scale_x),
+            int(roi_center_orig[1] * scale_y),
+            int(roi_center_orig[2] * scale_x),
+            int(roi_center_orig[3] * scale_y)
+        )
+        roi_right = (
+            int(roi_right_orig[0] * scale_x),
+            int(roi_right_orig[1] * scale_y),
+            int(roi_right_orig[2] * scale_x),
+            int(roi_right_orig[3] * scale_y)
+        )
         detections = []
 
         for detection in in_detections.detections:
-            # print("Label:", detection.label, "Conf:", detection.confidence)
+            print("Label:", detection.label, "Conf:", detection.confidence)
             if detection.label == 0:  # Persona en COCO
                 x1 = int(detection.xmin * frame.shape[1])
                 y1 = int(detection.ymin * frame.shape[0])
@@ -138,13 +142,13 @@ with dai.Device(pipeline) as device:
             cy = int((y1 + y2) / 2)
 
             # Determina en qué ROI está el centroide
-            if roi_left[0] <= cx < roi_left[0] + roi_left[2] and roi_left[1] <= cy < roi_left[1] + roi_left[3]:
+            if roi_left[0] <= cx < roi_left[0] + roi_left[2]:
                 roi_label = "Hinge Big"
                 color = (255, 0, 0)
-            elif roi_center[0] <= cx < roi_center[0] + roi_center[2] and roi_center[1] <= cy < roi_center[1] + roi_center[3]:
+            elif roi_center[0] <= cx < roi_center[0] + roi_center[2]:
                 roi_label = "Hinge Small"
                 color = (0, 255, 0)
-            elif roi_right[0] <= cx < roi_right[0] + roi_right[2] and roi_right[1] <= cy < roi_right[1] + roi_right[3]:
+            elif roi_right[0] <= cx < roi_right[0] + roi_right[2]:
                 roi_label = "Outside"
                 color = (0, 0, 255)
             else:
