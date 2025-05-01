@@ -37,7 +37,7 @@ detection_nn.setNumClasses(80)
 detection_nn.setCoordinateSize(4)
 detection_nn.setIouThreshold(0.5)
 detection_nn.setBlobPath(model_path)  # <--- AQUÍ USAS EL BLOB DESCARGADO
-detection_nn.setInputSize(416, 416)
+# detection_nn.setInputSize(416, 416)  # <--- ELIMINA ESTA LÍNEA
 detection_nn.input.setBlocking(False)
 detection_nn.input.setQueueSize(1)
 
@@ -59,7 +59,7 @@ with dai.Device(pipeline) as device:
     cv2.resizeWindow('Detection', 1280, 720)
 
     # Parámetros para el reporte cada 5 segundos
-    fps = 30
+    fps = 10
     intervalo = int(fps * 5)
     frame_count = 0
     personas_intervalo = set()
