@@ -110,6 +110,7 @@ with dai.Device(pipeline) as device:
                 _, mask = cv2.threshold(mask, 30, 255, cv2.THRESH_BINARY)
                 if np.sum(mask) > 1000:
                     cv2.putText(displayFrame, "¡Movimiento!", (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,0,255), 2)
+                    print("¡Objeto detectado en la ROI!")
 
         cv2.imshow(edgeLeftStr, edgeLeftFrame)
         cv2.imshow(edgeRightStr, edgeRightFrame)
