@@ -23,12 +23,18 @@ model_path = blobconverter.from_zoo(
 # --- Pipeline DepthAI ---
 pipeline = dai.Pipeline()
 
-# Cámara color
+# Cámara color (resolución nativa)
 cam_rgb = pipeline.createColorCamera()
-cam_rgb.setPreviewSize(416, 416)  # <-- Debe coincidir con el modelo
 cam_rgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
 cam_rgb.setInterleaved(False)
 cam_rgb.setFps(10)
+
+# ImageManip para resize con aspect ratio (letterbox)
+manip = pipeline.createImageManip()
+manip.initialConfig.setResize(416, 416)
+manip.initialConfig.setKeepAspectRatio(True)
+
+cam_rgb.video.link(manip.inputImage)
 
 # --- NN ---
 detection_nn = pipeline.createYoloDetectionNetwork()
@@ -39,8 +45,6 @@ detection_nn.setIouThreshold(0.5)
 detection_nn.setBlobPath(model_path)
 detection_nn.input.setBlocking(False)
 detection_nn.input.setQueueSize(1)
-
-# --- Anchors y anchor masks para YOLOv5n 416x416 COCO ---
 detection_nn.setAnchors([
     10,13, 16,30, 33,23,
     30,61, 62,45, 59,119,
@@ -52,13 +56,14 @@ detection_nn.setAnchorMasks({
     "side13": [6,7,8],
 })
 
-# Enlaces
-cam_rgb.preview.link(detection_nn.input)
+manip.out.link(detection_nn.input)
+
+# Enlaces de salida
 xout_rgb = pipeline.createXLinkOut()
 xout_nn = pipeline.createXLinkOut()
 xout_rgb.setStreamName("video")
 xout_nn.setStreamName("detections")
-cam_rgb.preview.link(xout_rgb.input)
+cam_rgb.video.link(xout_rgb.input)  # Para mostrar el video original
 detection_nn.out.link(xout_nn.input)
 
 # --- Inicializar dispositivo ---
@@ -69,7 +74,6 @@ with dai.Device(pipeline) as device:
     cv2.namedWindow('Detection', cv2.WINDOW_NORMAL)
     cv2.resizeWindow('Detection', 1280, 720)
 
-    # Parámetros para el reporte cada 5 segundos
     fps = 10
     intervalo = int(fps * 5)
     frame_count = 0
@@ -129,18 +133,15 @@ with dai.Device(pipeline) as device:
         cv2.rectangle(frame, (roi_center[0], roi_center[1]), (roi_center[0] + roi_center[2], roi_center[1] + roi_center[3]), (0, 255, 0), 2)
         cv2.rectangle(frame, (roi_right[0], roi_right[1]), (roi_right[0] + roi_right[2], roi_right[1] + roi_right[3]), (0, 0, 255), 2)
 
-        # Acumula los IDs vistos en este intervalo
         personas_intervalo.update(ids_presentes)
         frame_count += 1
 
-        # Reporte cada 5 segundos
         if frame_count >= intervalo:
             ultimo_reporte_texto = f"{time.strftime('%H:%M:%S')} Personas: {len(personas_intervalo)}"
             print(f"[{ultimo_reporte_texto}] (IDs: {sorted(personas_intervalo)})")
             personas_intervalo.clear()
             frame_count = 0
 
-        # Muestra el reporte en la ventana
         if ultimo_reporte_texto:
             cv2.putText(frame, ultimo_reporte_texto, (30, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
 
@@ -148,8 +149,8 @@ with dai.Device(pipeline) as device:
         key = cv2.waitKey(1) & 0xFF
         if key == ord('q'):
             break
-        elif key == 83 or key == ord('d'):  # Flecha derecha o 'd'
-            pass  # No aplica en tiempo real
+        elif key == 83 or key == ord('d'):
+            pass
         elif key == ord('+'):
             cv2.resizeWindow('Detection', 1920, 1080)
         elif key == ord('-'):
