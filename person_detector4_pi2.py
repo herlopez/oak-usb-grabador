@@ -6,9 +6,9 @@ import time
 import blobconverter
 
 # --- Configuración de ROIs ---
-roi_left = (50, 100, 150, 250)
-roi_center = (200, 100, 250, 300)
-roi_right = (300, 150, 350, 350)
+roi_left = (50, 100, 80, 100)
+roi_center = (200, 100, 80, 100)
+roi_right = (300, 150, 120, 150)
 
 # --- Inicializar SORT tracker ---
 tracker = Sort(max_age=30, min_hits=3, iou_threshold=0.3)
