@@ -28,13 +28,14 @@ cam_rgb = pipeline.createColorCamera()
 cam_rgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
 cam_rgb.setInterleaved(False)
 cam_rgb.setFps(10)
+cam_rgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
 
-# ImageManip para resize con aspect ratio (letterbox)
-# ImageManip para resize con aspect ratio (letterbox)
+# ImageManip para resize sin mantener aspecto (es lo que espera el modelo YOLOv5n)
 manip = pipeline.createImageManip()
 manip.initialConfig.setResize(416, 416)
 manip.initialConfig.setKeepAspectRatio(False)
 manip.initialConfig.setFrameType(dai.RawImgFrame.Type.BGR888)
+manip.setMaxOutputFrameSize(416 * 416 * 3)  # <--- ¡clave para evitar el error de tamaño!
 
 cam_rgb.video.link(manip.inputImage)
 
@@ -58,14 +59,15 @@ detection_nn.setAnchorMasks({
     "side13": [6,7,8],
 })
 
+# Enlaces
 manip.out.link(detection_nn.input)
 
-# Enlaces de salida
+# Salidas
 xout_rgb = pipeline.createXLinkOut()
 xout_nn = pipeline.createXLinkOut()
 xout_rgb.setStreamName("video")
 xout_nn.setStreamName("detections")
-manip.out.link(xout_rgb.input)  # Muestra la imagen que entra al modelo
+manip.out.link(xout_rgb.input)
 detection_nn.out.link(xout_nn.input)
 
 # --- Inicializar dispositivo ---
