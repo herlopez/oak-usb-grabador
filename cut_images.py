@@ -28,13 +28,14 @@ if w > 0 and h > 0:
     cv2.imshow("Recorte", recorte)
     # Carpeta "extract" en el mismo directorio de la imagen original
     base_dir = os.path.dirname(img_path)
-    extract_dir = os.path.join(base_dir, "_extract")
+    extract_dir = os.path.join(base_dir, "extract")
     os.makedirs(extract_dir, exist_ok=True)
     base, ext = os.path.splitext(os.path.basename(img_path))
     new_name = f"{base}_cut{ext}"
     new_path = os.path.join(extract_dir, new_name)
     cv2.imwrite(new_path, recorte)
-    print(f"Imagen recortada guardada como: {new_path}")
+    print(f"\nNombre del archivo: {new_name}")
+    print(f"Ruta completa: {os.path.abspath(new_path)}\n")
     cv2.waitKey(0)
 
 cv2.destroyAllWindows()
