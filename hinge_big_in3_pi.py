@@ -49,7 +49,7 @@ with dai.Device(pipeline) as device:
                           (RECORTADO[0]+ZONA_ALERTA[0]+ZONA_ALERTA[2], RECORTADO[1]+ZONA_ALERTA[1]+ZONA_ALERTA[3]),
                           (0, 0, 255), 2)
             cv2.imshow("Frame con recorte y ROI", frame)
-            cv2.waitKey(5000)
+            cv2.waitKey(100)
 
             x, y, w, h = RECORTADO
             zona = frame[y:y+h, x:x+w]

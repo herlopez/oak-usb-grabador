@@ -2,9 +2,34 @@ import cv2
 import numpy as np
 
 cap = cv2.VideoCapture(r'C:\Planta101\rpi7\20250429\14\output_20250429_145501.mp4')
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 
 RECORTADO = (1200, 280, 500, 500)  # x, y, w, h
 ZONA_ALERTA = (150, 150, 300, 100)  # x, y, w, h
+
+
+# --- Mostrar solo una foto con el recorte y el ROI ---
+ret, frame = cap.read()
+if ret:
+    # Dibuja el recorte (azul)
+    cv2.rectangle(frame, (RECORTADO[0], RECORTADO[1]),
+                  (RECORTADO[0]+RECORTADO[2], RECORTADO[1]+RECORTADO[3]),
+                  (255, 0, 0), 2)
+    # Dibuja el ROI (rojo) relativo al recorte
+    cv2.rectangle(frame,
+                  (RECORTADO[0]+ZONA_ALERTA[0], RECORTADO[1]+ZONA_ALERTA[1]),
+                  (RECORTADO[0]+ZONA_ALERTA[0]+ZONA_ALERTA[2], RECORTADO[1]+ZONA_ALERTA[1]+ZONA_ALERTA[3]),
+                  (0, 0, 255), 2)
+    cv2.imshow("Frame original con recorte y ROI", frame)
+    cv2.waitKey(0)  # Espera a que presiones una tecla
+    cv2.destroyWindow("Frame original con recorte y ROI")
+    cap.set(cv2.CAP_PROP_POS_FRAMES, 0)  # Reinicia el video para el procesamiento normal
+else:
+    print("No se pudo leer el frame del video.")
+
+
+
 
 MIN_AREA = 1000
 MIN_WIDTH = 30
