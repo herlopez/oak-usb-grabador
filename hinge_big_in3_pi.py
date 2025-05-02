@@ -113,7 +113,8 @@ with dai.Device(pipeline) as device:
 
                 # ALERTA inmediata si el centro entra en el ROI
                 if not data['alertado'] and zx <= centro[0] <= zx+zw and zy <= centro[1] <= zy+zh:
-                    print(f"⚠️ Objeto ID {oid} ha entrado en la zona de alerta")
+                    hora = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    print(f"⚠️ [{hora}] Objeto ID {oid} ha entrado en la zona de alerta")
                     cv2.putText(zona, "⚠️ ALERTA: OBJETO EN ZONA", (rx, ry+rh+25), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,0,255), 2)
                     objetos[oid]['alertado'] = True
 
