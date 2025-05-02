@@ -13,7 +13,7 @@ xout_rgb.setStreamName("rgb")
 cam_rgb.preview.link(xout_rgb.input)
 
 # Parámetros de tu lógica
-RECORTADO = (1200, 280, 500, 500)  # x, y, w, h (ajusta según la resolución de la cámara)
+RECORTADO = (1400, 280, 500, 500)  # x, y, w, h (ajusta según la resolución de la cámara)
 ZONA_ALERTA = (150, 150, 300, 100)
 MIN_AREA = 1000
 MIN_WIDTH = 30
