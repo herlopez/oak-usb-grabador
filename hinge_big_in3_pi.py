@@ -34,9 +34,11 @@ with dai.Device(pipeline) as device:
     q_rgb = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
     while True:
         if not paused or cv2.waitKey(1) & 0xFF == ord('n'):
-            in_rgb = q_rgb.get()
+            in_rgb = q_rgb.tryGet()
+            if in_rgb is None:
+                cv2.waitKey(10)
+                continue
             frame = in_rgb.getCvFrame()
-            frame_number += 1
 
             # Visualiza el recorte y el ROI sobre el frame completo
             cv2.rectangle(frame, (RECORTADO[0], RECORTADO[1]),
@@ -123,7 +125,7 @@ with dai.Device(pipeline) as device:
             cv2.imshow("Zona Recortada", zona)
             cv2.imshow("Máscara Color", mask_color)
 
-        key = cv2.waitKey(0 if paused else 1) & 0xFF
+        key = cv2.waitKey(10 if not paused else 0) & 0xFF
         if key == ord('q'):
             break
         elif key == ord('p'):
@@ -132,7 +134,6 @@ with dai.Device(pipeline) as device:
             paused = True
         elif key == ord('m'):
             frame_number = max(0, frame_number - 2)
-            # No se puede retroceder frames en tiempo real con OAK-D, solo avanzar
             paused = True
 
 cv2.destroyAllWindows()
