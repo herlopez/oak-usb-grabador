@@ -122,7 +122,7 @@ with dai.Device(pipeline) as device:
                           (0, 0, 255), 2)
 
             cv2.imshow("Zona Recortada", zona)
-            cv2.imshow("Máscara Color", mask_color)
+            # cv2.imshow("Máscara Color", mask_color)
 
         key = cv2.waitKey(10 if not paused else 0) & 0xFF
         if key == ord('q'):
