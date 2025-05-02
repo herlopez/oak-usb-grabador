@@ -5,7 +5,7 @@ import numpy as np
 # Configuración de la pipeline de DepthAI
 pipeline = dai.Pipeline()
 cam_rgb = pipeline.create(dai.node.ColorCamera)
-cam_rgb.setPreviewSize(1280, 720)
+cam_rgb.setPreviewSize(1920, 1080)
 cam_rgb.setInterleaved(False)
 cam_rgb.setBoardSocket(dai.CameraBoardSocket.RGB)
 xout_rgb = pipeline.create(dai.node.XLinkOut)
