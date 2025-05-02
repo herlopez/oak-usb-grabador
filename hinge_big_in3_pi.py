@@ -38,6 +38,16 @@ with dai.Device(pipeline) as device:
             frame = in_rgb.getCvFrame()
             frame_number += 1
 
+            # Visualiza el recorte y el ROI sobre el frame completo
+            cv2.rectangle(frame, (RECORTADO[0], RECORTADO[1]),
+                          (RECORTADO[0]+RECORTADO[2], RECORTADO[1]+RECORTADO[3]),
+                          (255, 0, 0), 2)
+            cv2.rectangle(frame,
+                          (RECORTADO[0]+ZONA_ALERTA[0], RECORTADO[1]+ZONA_ALERTA[1]),
+                          (RECORTADO[0]+ZONA_ALERTA[0]+ZONA_ALERTA[2], RECORTADO[1]+ZONA_ALERTA[1]+ZONA_ALERTA[3]),
+                          (0, 0, 255), 2)
+            cv2.imshow("Frame con recorte y ROI", frame)
+
             x, y, w, h = RECORTADO
             zona = frame[y:y+h, x:x+w]
 
@@ -99,21 +109,12 @@ with dai.Device(pipeline) as device:
                 cv2.circle(zona, centro, 5, (0,0,255), -1)
 
                 zx, zy, zw, zh = ZONA_ALERTA
-                trayectoria = data['trayectoria']
-                en_zona = zx <= centro[0] <= zx+zw and zy <= centro[1] <= zy+zh
 
-                if not data['alertado'] and en_zona and data['frames'] >= FRAMES_QUIETOS:
-                    ultimos = trayectoria[-FRAMES_QUIETOS:]
-                    velocidades = [
-                        np.linalg.norm(np.array(ultimos[i]) - np.array(ultimos[i-1]))
-                        for i in range(1, len(ultimos))
-                    ]
-                    velocidad_prom = sum(velocidades) / len(velocidades)
-                    if velocidad_prom < VELOCIDAD_UMBRAL:
-                        print(f"⚠️ Objeto ID {oid} COLOCADO en la zona de alerta")
-                        cv2.putText(zona, "⚠️ ALERTA: OBJETO DETENIDO", (rx, ry+rh+25),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,0,255), 2)
-                        objetos[oid]['alertado'] = True
+                # ALERTA inmediata si el centro entra en el ROI
+                if not data['alertado'] and zx <= centro[0] <= zx+zw and zy <= centro[1] <= zy+zh:
+                    print(f"⚠️ Objeto ID {oid} ha entrado en la zona de alerta")
+                    cv2.putText(zona, "⚠️ ALERTA: OBJETO EN ZONA", (rx, ry+rh+25), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,0,255), 2)
+                    objetos[oid]['alertado'] = True
 
             cv2.rectangle(zona, (ZONA_ALERTA[0], ZONA_ALERTA[1]),
                           (ZONA_ALERTA[0]+ZONA_ALERTA[2], ZONA_ALERTA[1]+ZONA_ALERTA[3]),
