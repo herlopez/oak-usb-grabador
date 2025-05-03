@@ -4,7 +4,7 @@ import numpy as np
 from sort.sort import Sort
 import time
 
-# Cargar modelo YOLOv5 de PyTorch (requiere internet la primera vez)
+# Cargar modelo YOLOv5 de PyTorch (puedes probar 'yolov5m' para mejor detección)
 model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
 
 # Abrir archivo de video
@@ -36,12 +36,18 @@ while cap.isOpened():
     if not ret:
         break
 
-    # --- FILTRO DE COLOR BLANCO ---
+    # --- FILTRO DE COLOR BLANCO Y NEGRO ---
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    lower_white = np.array([0, 0, 180])
-    upper_white = np.array([180, 60, 255])
+    lower_white = np.array([0, 0, 120])
+    upper_white = np.array([180, 100, 255])
     mask_white = cv2.inRange(hsv, lower_white, upper_white)
+
+    lower_black = np.array([0, 0, 0])
+    upper_black = np.array([180, 255, 60])
+    mask_black = cv2.inRange(hsv, lower_black, upper_black)
+
     cv2.imshow('WhiteMask', mask_white)  # DEBUG: ver la máscara de blancos
+    cv2.imshow('BlackMask', mask_black)  # DEBUG: ver la máscara de negros
 
     results = model(frame)
     detections = []
@@ -49,20 +55,29 @@ while cap.isOpened():
     for det in results.xyxy[0]:
         class_id = int(det[5])
         conf = float(det[4])
-        if class_id != 0 and conf > 0.15:  # Detectar cualquier objeto que NO sea persona y confianza > 0.15
-            x1, y1, x2, y2 = map(int, det[:4])
-            # Refuerzo: solo aceptar si el área es mayormente blanca
-            roi_mask = mask_white[y1:y2, x1:x2]
-            white_ratio = np.sum(roi_mask == 255) / (roi_mask.size + 1e-6)
-            if white_ratio > 0.4:  # Ajusta este umbral según tus objetos
+        x1, y1, x2, y2 = map(int, det[:4])
+        # Dibuja todos los bbox detectados por YOLO en azul (debug)
+        cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 255, 0), 1)
+        if class_id != 0 and conf > 0.1:  # Umbral bajo para más detecciones
+            roi_mask_white = mask_white[y1:y2, x1:x2]
+            roi_mask_black = mask_black[y1:y2, x1:x2]
+            white_ratio = np.sum(roi_mask_white == 255) / (roi_mask_white.size + 1e-6)
+            black_ratio = np.sum(roi_mask_black == 255) / (roi_mask_black.size + 1e-6)
+            roi_v = hsv[y1:y2, x1:x2, 2]
+            mean_v = np.mean(roi_v) if roi_v.size > 0 else 0
+            print(f"Conf: {conf:.2f} White: {white_ratio:.2f} Black: {black_ratio:.2f} MeanV: {mean_v:.1f} Box: {x1},{y1},{x2},{y2}")
+            # Acepta si es suficientemente blanco, negro o brillante
+            if white_ratio > 0.15 or black_ratio > 0.15 or mean_v > 120:
                 detections.append([x1, y1, x2, y2, conf])
-                # DEBUG: dibuja el bbox en magenta si pasa el filtro de blanco
-                cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 255), 1)
-                cv2.putText(frame, f"white:{white_ratio:.2f}", (x1, y2+15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,0,255), 1)
+                # DEBUG: dibuja el bbox en magenta si pasa el filtro de blanco/negro/brillo
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 255), 2)
+                cv2.putText(frame, f"w:{white_ratio:.2f} b:{black_ratio:.2f} v:{mean_v:.0f}", (x1, y2+15),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,0,255), 1)
             else:
-                # DEBUG: dibuja el bbox en rojo si NO pasa el filtro de blanco
+                # DEBUG: dibuja el bbox en rojo si NO pasa el filtro de blanco/negro/brillo
                 cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 1)
-                cv2.putText(frame, f"white:{white_ratio:.2f}", (x1, y2+15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,255), 1)
+                cv2.putText(frame, f"w:{white_ratio:.2f} b:{black_ratio:.2f} v:{mean_v:.0f}", (x1, y2+15),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,255), 1)
 
     if detections:
         dets_np = np.array(detections)
@@ -93,7 +108,9 @@ while cap.isOpened():
         cv2.circle(frame, (cx, cy), 4, (0, 0, 255), -1)
 
     # Dibuja solo el ROI izquierdo
-    cv2.rectangle(frame, (roi_left[0], roi_left[1]), (roi_left[0] + roi_left[2], roi_left[1] + roi_left[3]), (255, 0, 0), 2)
+    cv2.rectangle(frame, (roi_left[0], roi_left[1]),
+                  (roi_left[0] + roi_left[2], roi_left[1] + roi_left[3]),
+                  (255, 0, 0), 2)
 
     objetos_intervalo.update(ids_presentes)
     frame_count += 1
@@ -105,7 +122,8 @@ while cap.isOpened():
         frame_count = 0
 
     if ultimo_reporte_texto:
-        cv2.putText(frame, ultimo_reporte_texto, (30, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+        cv2.putText(frame, ultimo_reporte_texto, (30, 40),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
 
     # Mostrar con o sin zoom
     frame_to_show = frame

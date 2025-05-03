@@ -1,4 +1,4 @@
-readme
+pip install opencv-python torch numpy filterpy
 
 
 person_detector.py
