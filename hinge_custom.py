@@ -7,7 +7,7 @@ with open("classes.txt", "r") as f:
     class_list = f.read().splitlines()
 
 # Parámetros de entrada
-input_size = 640  # ajusta a lo que usaste en entrenamiento
+input_size = 416  # ajusta a lo que usaste en entrenamiento
 
 # Crear pipeline
 pipeline = dai.Pipeline()
