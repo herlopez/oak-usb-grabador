@@ -2,50 +2,75 @@ import depthai as dai
 import cv2
 import numpy as np
 
-# Crear el pipeline
+# Carga de clases
+with open("classes.txt", "r") as f:
+    class_list = f.read().splitlines()
+
+# Parámetros de entrada
+input_size = 640  # ajusta a lo que usaste en entrenamiento
+
+# Crear pipeline
 pipeline = dai.Pipeline()
 
-# Nodo de cámara RGB
-camRgb = pipeline.create(dai.node.ColorCamera)
-camRgb.setPreviewSize(640, 640)  # Usa la resolución de entrenamiento de tu modelo
-camRgb.setInterleaved(False)
-camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
+# Cámara RGB
+cam = pipeline.create(dai.node.ColorCamera)
+cam.setPreviewSize(input_size, input_size)
+cam.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
+cam.setInterleaved(False)
+cam.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
 
-# Nodo de red neuronal
+# Red neuronal
 nn = pipeline.create(dai.node.NeuralNetwork)
-nn.setBlobPath("best_openvino_2022.1_6shave.blob")  # Ruta al archivo .blob
-nn.input.setBlocking(False)
-nn.input.setQueueSize(1)
+nn.setBlobPath("best_openvino_2022.1_6shave.blob")
+cam.preview.link(nn.input)
 
-# Conectar la cámara al modelo
-camRgb.preview.link(nn.input)
-
-# Salida de la cámara para mostrarla con OpenCV
+# Salidas
 xoutRgb = pipeline.create(dai.node.XLinkOut)
 xoutRgb.setStreamName("rgb")
-camRgb.preview.link(xoutRgb.input)
+cam.preview.link(xoutRgb.input)
 
-# Salida del modelo
 xoutNN = pipeline.create(dai.node.XLinkOut)
 xoutNN.setStreamName("nn")
 nn.out.link(xoutNN.input)
 
 # Ejecutar en el dispositivo
 with dai.Device(pipeline) as device:
-    rgbQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
-    nnQueue = device.getOutputQueue(name="nn", maxSize=4, blocking=False)
+    rgbQueue = device.getOutputQueue("rgb", 4, False)
+    nnQueue = device.getOutputQueue("nn", 4, False)
 
     while True:
         inRgb = rgbQueue.get()
         inNN = nnQueue.get()
 
         frame = inRgb.getCvFrame()
-        detections = inNN.getFirstLayerFp16()
+        nn_data = inNN.getFirstLayerFp16()
 
-        # Aquí deberías interpretar el resultado según el modelo que exportaste
-        # Este paso cambia si usaste YOLO, MobileNet, etc.
-        # Por ejemplo, puedes decodificar bounding boxes si sabes el layout
+        # YOLOv5 normalmente produce 25200 predicciones (por defecto en 640x640)
+        # Cada predicción tiene al menos 85 valores (x, y, w, h, obj_conf, clases...)
+        predictions = np.array(nn_data).reshape((1, -1, len(class_list) + 5))[0]
 
-        cv2.imshow("RGB", frame)
-        if cv2.waitKey(1) == ord('q'):
+        for det in predictions:
+            conf = det[4]
+            if conf > 0.4:  # umbral de confianza
+                class_scores = det[5:]
+                class_id = np.argmax(class_scores)
+                score = class_scores[class_id]
+                if score > 0.4:
+                    label = class_list[class_id]
+                    x, y, w, h = det[0:4]
+
+                    # YOLOv5 coords están normalizados (0-1), escala al tamaño real
+                    x = int((x - w / 2) * input_size)
+                    y = int((y - h / 2) * input_size)
+                    w = int(w * input_size)
+                    h = int(h * input_size)
+
+                    cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                    cv2.putText(frame, f"{label} {conf:.2f}", (x, y - 10),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+
+        cv2.imshow("OAK-D YOLOv5", frame)
+        if cv2.waitKey(1) == ord("q"):
             break
+
+cv2.destroyAllWindows()
