@@ -1,6 +1,3 @@
-#Para detectar objetos en la salida del horno sobre la banda transportadora.  Testeado con el video de la camara planta101/rpi5
-
-
 import cv2
 import numpy as np
 from sort.sort import Sort
@@ -39,16 +36,19 @@ while cap.isOpened():
     lower_white = np.array([0, 0, 120])
     upper_white = np.array([180, 100, 255])
     mask_white = cv2.inRange(hsv, lower_white, upper_white)
-    # cv2.imshow('WhiteMask', mask_white)  # DEBUG
 
-    # Encontrar contornos en la máscara blanca
-    contours, _ = cv2.findContours(mask_white, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # --- Operación morfológica para separar objetos pegados ---
+    kernel = np.ones((5, 5), np.uint8)
+    mask_white_sep = cv2.morphologyEx(mask_white, cv2.MORPH_OPEN, kernel)
+    # cv2.imshow('WhiteMaskSep', mask_white_sep)  # DEBUG
+
+    # Encontrar contornos en la máscara procesada
+    contours, _ = cv2.findContours(mask_white_sep, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     detections = []
     for cnt in contours:
-        area = cv2.contourArea(cnt)
-        if area > 5000:  # Ajusta según el tamaño real de las cajas
-            x, y, w, h = cv2.boundingRect(cnt)
+        x, y, w, h = cv2.boundingRect(cnt)
+        if w >= 20 and h >= 20:  # Solo objetos de al menos 20x20 píxeles
             detections.append([x, y, x + w, y + h, 0.99])  # Simula alta confianza
             cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 255, 0), 1)  # Azul claro
 
@@ -110,8 +110,10 @@ while cap.isOpened():
         cv2.putText(frame, ultimo_reporte_texto, (30, 40),
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
 
+    # Control de velocidad en tiempo real
+    delay = int(1000 / fps) if fps > 0 else 33
     cv2.imshow('Detection', frame)
-    key = cv2.waitKey(1) & 0xFF
+    key = cv2.waitKey(delay) & 0xFF
     if key == ord('q'):
         break
 
