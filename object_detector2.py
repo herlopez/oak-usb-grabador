@@ -1,3 +1,5 @@
+#Para detectar objetos en la salida del horno sobre la banda transportadora.  Testeado con el video de la camara planta101/rpi5
+
 import cv2
 import torch
 import numpy as np
