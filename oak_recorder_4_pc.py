@@ -10,7 +10,7 @@ from sort.sort import Sort
 LOGGER.setLevel(logging.WARNING)
 
 # Configuración lectura video
-VIDEO_PATH = r"C:\Planta101\rpi7\20250505\13\output_20250505_133800.mp4"
+VIDEO_PATH = r"C:\Planta101\rpi7\20250505\13\output_20250505_134000.mp4"
 print("¿Existe el video?", os.path.exists(VIDEO_PATH))
 OUTPUT_DIR = "./output"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -59,6 +59,7 @@ frames_per_segment = int(fps * segment_duration)
 
 segment_idx = 0
 frame_idx = 0
+objeto_hinge_presente_anterior = False
 
 while True:
     ret, frame = cap.read()
@@ -81,7 +82,6 @@ while True:
         out_roi_frames = 0
         person_counts = []
         objeto_hinge_count = 0
-        objeto_hinge_presente_anterior = False
         frames_in_segment = 0
 
     # Detección con YOLOv5
@@ -98,7 +98,6 @@ while True:
     roi_right = escalar_roi(roi_right_orig, frame.shape, (original_width, original_height))
     roi_hinge_scaled = escalar_roi(roi_hinge_orig, frame.shape, (original_width, original_height))
     roi_hinge_area = roi_hinge_scaled[2] * roi_hinge_scaled[3]
-    objeto_hinge_presente = False
 
     # --- Dibuja bounding boxes de personas con ID sobre el frame ---
     frame_roi = frame.copy()
@@ -123,52 +122,83 @@ while True:
         x1, y1, x2, y2, track_id = map(int, track[:5])
         cx = int((x1 + x2) // 2)
         cy = int((y1 + y2) // 2)
-        depth_value = 0  # Placeholder para el valor de profundidad (puedes reemplazarlo con un valor real si lo tienes)
-        # Determinar color y ROI
         if roi_left[0] <= cx < roi_left[0] + roi_left[2] and roi_left[1] <= cy < roi_left[1] + roi_left[3]:
             color = (255, 0, 0)
             roi_left_present = True
-            roi_label = f"ID:{track_id} {depth_value} Left"
+            roi_label = f"ID:{track_id} Left"
         elif roi_center[0] <= cx < roi_center[0] + roi_center[2] and roi_center[1] <= cy < roi_center[1] + roi_center[3]:
             color = (0, 255, 0)
             roi_center_present = True
-            roi_label = f"ID:{track_id} {depth_value} Center"
+            roi_label = f"ID:{track_id} Center"
         elif roi_right[0] <= cx < roi_right[0] + roi_right[2] and roi_right[1] <= cy < roi_right[1] + roi_right[3]:
             color = (0, 0, 255)
             roi_right_present = True
-            roi_label = f"ID:{track_id} {depth_value} Right"
+            roi_label = f"ID:{track_id} Right"
         else:
             color = (0, 255, 255)
-            roi_label = f"ID:{track_id} {depth_value} Fuera ROI"
+            roi_label = f"ID:{track_id} Fuera ROI"
         cv2.rectangle(frame_roi, (x1, y1), (x2, y2), color, 2)
         cv2.putText(frame_roi, roi_label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
         person_count_this_frame += 1
 
-    # Detección de objetos no persona para hinge con entrada por izquierda o arriba
+    # --- Detección del hinge usando detections de YOLO ---
+    HINGE_CONFIDENCE = 0.2  # Puedes ajustar este valor
+
+    hinge_detected_yolo = False
+    hinge_bbox = None  # <-- Guarda el bounding box del hinge
     for box in detections:
         cls = int(box.cls[0])
-        if cls != 0:
+        conf = float(box.conf[0]) if hasattr(box, 'conf') else 1.0
+        if cls != 0 and conf > HINGE_CONFIDENCE:
             x1, y1, x2, y2 = map(int, box.xyxy[0])
-            inter_x1 = max(x1, roi_hinge_scaled[0])
-            inter_y1 = max(y1, roi_hinge_scaled[1])
-            inter_x2 = min(x2, roi_hinge_scaled[0] + roi_hinge_scaled[2])
-            inter_y2 = min(y2, roi_hinge_scaled[1] + roi_hinge_scaled[3])
-            inter_w = max(0, inter_x2 - inter_x1)
-            inter_h = max(0, inter_y2 - inter_y1)
-            inter_area = inter_w * inter_h
-            objeto_hinge_presente = True
-            # if roi_hinge_area > 0 and (inter_area / roi_hinge_area) > 0.1:
-            #     # Chequea si el objeto entra desde la izquierda o arriba
-            #     entra_por_izquierda = (x1 < roi_hinge_scaled[0] + 10) and (inter_w > 0)
-            #     entra_por_arriba = (y1 < roi_hinge_scaled[1] + 10) and (inter_h > 0)
-            #     if entra_por_izquierda or entra_por_arriba:
-            #         objeto_hinge_presente = True
+            cx = int((x1 + x2) // 2)
+            cy = int((y1 + y2) // 2)
+            if (roi_hinge_scaled[0] <= cx < roi_hinge_scaled[0] + roi_hinge_scaled[2] and
+                roi_hinge_scaled[1] <= cy < roi_hinge_scaled[1] + roi_hinge_scaled[3]):
+                hinge_detected_yolo = True
+                hinge_bbox = (x1, y1, x2, y2)  # <-- Guarda el bbox
 
-    if objeto_hinge_presente and not objeto_hinge_presente_anterior:
+    # --- Detección del hinge por figura y contraste ---
+    HINGE_BRIGHTNESS_THRESHOLD = 180
+    hinge_roi = frame[roi_hinge_scaled[1]:roi_hinge_scaled[1]+roi_hinge_scaled[3],
+                    roi_hinge_scaled[0]:roi_hinge_scaled[0]+roi_hinge_scaled[2]]
+    hinge_gray = cv2.cvtColor(hinge_roi, cv2.COLOR_BGR2GRAY)
+    _, hinge_bin = cv2.threshold(hinge_gray, HINGE_BRIGHTNESS_THRESHOLD, 255, cv2.THRESH_BINARY)
+    contours, _ = cv2.findContours(hinge_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    hinge_detected_shape = False
+    for cnt in contours:
+        area = cv2.contourArea(cnt)
+        if area > 0.03 * hinge_bin.shape[0] * hinge_bin.shape[1]:
+            epsilon = 0.05 * cv2.arcLength(cnt, True)
+            approx = cv2.approxPolyDP(cnt, epsilon, True)
+            if len(approx) == 4:
+                # Contraste local
+                mask = np.zeros_like(hinge_gray)
+                cv2.drawContours(mask, [approx], -1, 255, -1)
+                mean_in = cv2.mean(hinge_gray, mask=mask)[0]
+                mean_out = cv2.mean(hinge_gray, mask=cv2.bitwise_not(mask))[0]
+                if abs(mean_in - mean_out) > 30:  # Contraste suficiente
+                    hinge_detected_shape = True
+                    # Calcula el bbox absoluto del contorno detectado
+                    x, y, w, h = cv2.boundingRect(approx)
+                    x1 = roi_hinge_scaled[0] + x
+                    y1 = roi_hinge_scaled[1] + y
+                    x2 = x1 + w
+                    y2 = y1 + h
+                    hinge_bbox = (x1, y1, x2, y2)
+                    break
+
+    # --- Combinación de ambos métodos ---
+    hinge_detected = hinge_detected_yolo or hinge_detected_shape
+
+    if hinge_detected and hinge_bbox:
+        cv2.rectangle(frame_roi, (hinge_bbox[0], hinge_bbox[1]), (hinge_bbox[2], hinge_bbox[3]), (0, 0, 255), 2)
+        cv2.putText(frame_roi, "HINGE", (hinge_bbox[0], hinge_bbox[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,0,255), 2)
+
+    if hinge_detected and not objeto_hinge_presente_anterior:
         objeto_hinge_count += 1
         print(f"[{datetime.now().strftime('%H:%M:%S')}] Event HINGE detected! (ID: {objeto_hinge_count})")
-
-    objeto_hinge_presente_anterior = objeto_hinge_presente
+    objeto_hinge_presente_anterior = hinge_detected
 
     # Estadísticas de personas y ROIs
     person_counts.append(person_count_this_frame)
@@ -181,12 +211,12 @@ while True:
     if (person_count_this_frame > 0) and not (roi_left_present or roi_center_present or roi_right_present):
         out_roi_frames += 1
 
-
-    # Visualizar el frame con ROIs en cada iteración
+    # Visualizar el frame con ROIs y centro del hinge
     cv2.rectangle(frame_roi, (roi_left[0], roi_left[1]), (roi_left[0]+roi_left[2], roi_left[1]+roi_left[3]), (255,0,0), 2)
     cv2.rectangle(frame_roi, (roi_center[0], roi_center[1]), (roi_center[0]+roi_center[2], roi_center[1]+roi_center[3]), (0,255,0), 2)
     cv2.rectangle(frame_roi, (roi_right[0], roi_right[1]), (roi_right[0]+roi_right[2], roi_right[1]+roi_right[3]), (0,0,255), 2)
     cv2.rectangle(frame_roi, (roi_hinge_scaled[0], roi_hinge_scaled[1]), (roi_hinge_scaled[0]+roi_hinge_scaled[2], roi_hinge_scaled[1]+roi_hinge_scaled[3]), (0,128,255), 2)
+
     cv2.imshow("Video con ROIs", frame_roi)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         print("Procesamiento interrumpido por el usuario.")
