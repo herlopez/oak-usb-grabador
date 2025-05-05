@@ -54,7 +54,7 @@ pipeline = dai.Pipeline()
 cam = pipeline.createColorCamera()
 cam.setBoardSocket(dai.CameraBoardSocket.RGB)
 cam.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
-cam.setFps(10)
+cam.setFps(15)
 
 # Crear salida
 xout = pipeline.createXLinkOut()
@@ -66,7 +66,7 @@ with dai.Device(pipeline) as device:
 
     frame_width = 1920
     frame_height = 1080
-    fps = 10
+    fps = 15
     segment_duration = 60  # 1 minuto en segundos
 
     # Esperar hasta el próximo múltiplo de x minutos
