@@ -1,4 +1,4 @@
-# prueba base estable!
+# prueba base estable! CON PROFUNDIDAD PROMEDIO POR ROI
 # Graba archivo de video y lo analiza para contar personas en 3 ROIs,
 # mide la profundidad promedio de personas en cada ROI y guarda estadísticas en CSV.
 
