@@ -302,7 +302,7 @@ with dai.Device(pipeline) as device:
                         inter_w = max(0, inter_x2 - inter_x1)
                         inter_h = max(0, inter_y2 - inter_y1)
                         inter_area = inter_w * inter_h
-                        if roi_hinge_area > 0 and (inter_area / roi_hinge_area) > 0.4:
+                        if roi_hinge_area > 0 and (inter_area / roi_hinge_area) > 0.2:
                             objeto_hinge_presente = True
 
                 if objeto_hinge_presente and not objeto_hinge_presente_anterior:
