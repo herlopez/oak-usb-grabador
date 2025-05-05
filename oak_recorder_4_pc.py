@@ -1,22 +1,34 @@
 import cv2
 import numpy as np
 import os
+import logging
 from datetime import datetime, timedelta
 import csv
 from ultralytics import YOLO
+from ultralytics.utils import LOGGER
+LOGGER.setLevel(logging.WARNING)
 
-# Configuración de carpetas
-VIDEO_PATH = "video_de_prueba.mp4"  # Cambia por tu video
+# Configuración
+VIDEO_PATH = r"C:\Planta101\rpi7\20250505\13\output_20250505_135200.mp4"
+print("¿Existe el video?", os.path.exists(VIDEO_PATH))
 OUTPUT_DIR = "./output"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# Configuración de ROIs
+# Configuración de ROIs (ajusta si tu video es 416x416)
 roi_left_orig   = (100, 500, 350, 250)
 roi_center_orig = (880, 400, 130, 150)
 roi_right_orig  = (1200, 250, 350, 300)
 roi_hinge       = (1400, 380, 500, 200)
 original_width = 1920
 original_height = 1080
+
+# Si tu video es 416x416, usa esto:
+# roi_left_orig   = (22, 192, 76, 96)
+# roi_center_orig = (190, 154, 28, 58)
+# roi_right_orig  = (260, 96, 76, 115)
+# roi_hinge       = (303, 146, 108, 77)
+# original_width = 416
+# original_height = 416
 
 # Cargar modelo YOLOv5 (puedes usar yolov5n, yolov5s, etc.)
 model = YOLO("yolov5n.pt")  # Descarga automática
@@ -42,6 +54,9 @@ def escalar_roi(roi, shape, orig_shape):
 
 # Procesamiento de video
 cap = cv2.VideoCapture(VIDEO_PATH)
+if not cap.isOpened():
+    print("No se pudo abrir el video:", VIDEO_PATH)
+    exit()
 fps = cap.get(cv2.CAP_PROP_FPS)
 frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 segment_duration = 60  # segundos por segmento
@@ -49,14 +64,6 @@ frames_per_segment = int(fps * segment_duration)
 
 segment_idx = 0
 frame_idx = 0
-
-roi_left_frames = 0
-roi_center_frames = 0
-roi_right_frames = 0
-out_roi_frames = 0
-person_counts = []
-objeto_hinge_count = 0
-objeto_hinge_presente_anterior = False
 
 while True:
     ret, frame = cap.read()
@@ -80,15 +87,15 @@ while True:
         person_counts = []
         objeto_hinge_count = 0
         objeto_hinge_presente_anterior = False
-        segment_idx += 1
+        frames_in_segment = 0
 
     # Detección con YOLOv5
     results = model(frame)
     detections = results[0].boxes
-    ids_presentes = set()
     roi_left_present = False
     roi_center_present = False
     roi_right_present = False
+    person_count_this_frame = 0
 
     # Escalar ROIs
     roi_left = escalar_roi(roi_left_orig, frame.shape, (original_width, original_height))
@@ -96,17 +103,21 @@ while True:
     roi_right = escalar_roi(roi_right_orig, frame.shape, (original_width, original_height))
     roi_hinge_scaled = escalar_roi(roi_hinge, frame.shape, (original_width, original_height))
     roi_hinge_area = roi_hinge_scaled[2] * roi_hinge_scaled[3]
-
-    # --- Evento objeto_hinge (solo objetos que NO sean persona, y solo cuenta una vez por evento) ---
     objeto_hinge_presente = False
 
+    # --- Dibuja bounding boxes de personas sobre el frame ---
+    frame_roi = frame.copy()
     for box in detections:
         cls = int(box.cls[0])
         x1, y1, x2, y2 = map(int, box.xyxy[0])
-        # Personas = 0 en COCO
+        cx = int((x1 + x2) // 2)
+        cy = int((y1 + y2) // 2)
         if cls == 0:
-            cx = int((x1 + x2) / 2)
-            cy = int((y1 + y2) / 2)
+            # Persona
+            person_count_this_frame += 1
+            # Dibuja el bounding box de la persona
+            cv2.rectangle(frame_roi, (x1, y1), (x2, y2), (0, 255, 255), 2)
+            cv2.putText(frame_roi, "Persona", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
             if roi_left[0] <= cx < roi_left[0] + roi_left[2] and roi_left[1] <= cy < roi_left[1] + roi_left[3]:
                 roi_left_present = True
             elif roi_center[0] <= cx < roi_center[0] + roi_center[2] and roi_center[1] <= cy < roi_center[1] + roi_center[3]:
@@ -114,7 +125,7 @@ while True:
             elif roi_right[0] <= cx < roi_right[0] + roi_right[2] and roi_right[1] <= cy < roi_right[1] + roi_right[3]:
                 roi_right_present = True
         else:
-            # Solo objetos que NO sean persona
+            # Objeto NO persona: cuenta para objeto_hinge
             inter_x1 = max(x1, roi_hinge_scaled[0])
             inter_y1 = max(y1, roi_hinge_scaled[1])
             inter_x2 = min(x2, roi_hinge_scaled[0] + roi_hinge_scaled[2])
@@ -127,38 +138,45 @@ while True:
 
     if objeto_hinge_presente and not objeto_hinge_presente_anterior:
         objeto_hinge_count += 1
+        # print(f"[{datetime.now().strftime('%H:%M:%S')}] Evento HINGE detectado (objeto no persona en ROI hinge)")
     objeto_hinge_presente_anterior = objeto_hinge_presente
 
-    # Estadísticas
-    person_counts.append(len([box for box in detections if int(box.cls[0]) == 0]))
+    # Estadísticas de personas y ROIs
+    person_counts.append(person_count_this_frame)
     if roi_left_present:
         roi_left_frames += 1
     if roi_center_present:
         roi_center_frames += 1
     if roi_right_present:
         roi_right_frames += 1
-    if (len([box for box in detections if int(box.cls[0]) == 0]) > 0) and not (roi_left_present or roi_center_present or roi_right_present):
+    if (person_count_this_frame > 0) and not (roi_left_present or roi_center_present or roi_right_present):
         out_roi_frames += 1
 
+    # Visualizar el frame con ROIs en cada iteración
+    cv2.rectangle(frame_roi, (roi_left[0], roi_left[1]), (roi_left[0]+roi_left[2], roi_left[1]+roi_left[3]), (255,0,0), 2)
+    cv2.rectangle(frame_roi, (roi_center[0], roi_center[1]), (roi_center[0]+roi_center[2], roi_center[1]+roi_center[3]), (0,255,0), 2)
+    cv2.rectangle(frame_roi, (roi_right[0], roi_right[1]), (roi_right[0]+roi_right[2], roi_right[1]+roi_right[3]), (0,0,255), 2)
+    cv2.rectangle(frame_roi, (roi_hinge_scaled[0], roi_hinge_scaled[1]), (roi_hinge_scaled[0]+roi_hinge_scaled[2], roi_hinge_scaled[1]+roi_hinge_scaled[3]), (0,128,255), 2)
+    cv2.imshow("Video con ROIs", frame_roi)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        print("Procesamiento interrumpido por el usuario.")
+        break
+
     # Guardar imágenes al final del segmento
+    frames_in_segment += 1
     if (frame_idx + 1) % frames_per_segment == 0 or not ret:
         # Guardar imagen original
         img_original_path = os.path.join(img_dir, filename.replace('.mp4', f'_frame{frame_idx}_original.jpg'))
         cv2.imwrite(img_original_path, frame)
         # Guardar imagen con ROIs
-        frame_roi = frame.copy()
-        cv2.rectangle(frame_roi, (roi_left[0], roi_left[1]), (roi_left[0]+roi_left[2], roi_left[1]+roi_left[3]), (255,0,0), 2)
-        cv2.rectangle(frame_roi, (roi_center[0], roi_center[1]), (roi_center[0]+roi_center[2], roi_center[1]+roi_center[3]), (0,255,0), 2)
-        cv2.rectangle(frame_roi, (roi_right[0], roi_right[1]), (roi_right[0]+roi_right[2], roi_right[1]+roi_right[3]), (0,0,255), 2)
-        cv2.rectangle(frame_roi, (roi_hinge_scaled[0], roi_hinge_scaled[1]), (roi_hinge_scaled[0]+roi_hinge_scaled[2], roi_hinge_scaled[1]+roi_hinge_scaled[3]), (0,128,255), 2)
         img_roi_path = os.path.join(img_dir, filename.replace('.mp4', f'_frame{frame_idx}_roi.jpg'))
         cv2.imwrite(img_roi_path, frame_roi)
 
         # Guardar CSV
-        pct_left = 100 * roi_left_frames / frames_per_segment if frames_per_segment else 0
-        pct_center = 100 * roi_center_frames / frames_per_segment if frames_per_segment else 0
-        pct_right = 100 * roi_right_frames / frames_per_segment if frames_per_segment else 0
-        pct_out_roi = 100 * out_roi_frames / frames_per_segment if frames_per_segment else 0
+        pct_left = 100 * roi_left_frames / frames_in_segment if frames_in_segment else 0
+        pct_center = 100 * roi_center_frames / frames_in_segment if frames_in_segment else 0
+        pct_right = 100 * roi_right_frames / frames_in_segment if frames_in_segment else 0
+        pct_out_roi = 100 * out_roi_frames / frames_in_segment if frames_in_segment else 0
         avg_personas = int(np.ceil(np.mean(person_counts))) if person_counts else 0
 
         fecha = now.strftime('%Y-%m-%d')
@@ -176,4 +194,5 @@ while True:
 
 cap.release()
 csv_file.close()
+cv2.destroyAllWindows()
 print("¡Procesamiento terminado!")
