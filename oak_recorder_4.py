@@ -307,7 +307,7 @@ with dai.Device(pipeline) as device:
 
                 if objeto_hinge_presente and not objeto_hinge_presente_anterior:
                     objeto_hinge_count += 1
-                    print(f"[{datetime.now().strftime('%H:%M:%S')}] Evento HINGE detectado (objeto no persona en ROI hinge)")
+                    # print(f"[{datetime.now().strftime('%H:%M:%S')}] Evento HINGE detectado (objeto no persona en ROI hinge)")
                 objeto_hinge_presente_anterior = objeto_hinge_presente
 
                 # Estadísticas de personas y ROIs
@@ -325,8 +325,8 @@ with dai.Device(pipeline) as device:
                 frames_in_segment += 1
 
                 if time.time() - start_time >= segment_duration:
-                    print(f"Grabación de {MINUTO_MULTIPLO} minuto(s) completada.")
-                    logging.info(f"Fin de grabación: {filepath}")
+                    # print(f"Grabación de {MINUTO_MULTIPLO} minuto(s) completada.")
+                    # logging.info(f"Fin de grabación: {filepath}")
                     break
         except KeyboardInterrupt:
             print("Grabación interrumpida por el usuario.")
