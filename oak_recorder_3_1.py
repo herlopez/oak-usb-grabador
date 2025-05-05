@@ -168,8 +168,8 @@ with dai.Device(pipeline) as device:
         # Espera el primer frame para obtener el tamaño real
         in_video = video_queue.get()
         in_detections = detections_queue.get()
-        frame_1080 = in_video.getCvFrame()  # <-- 1080p del stream original
-        frame_416 = manip_queue.get().getCvFrame()  # <-- 416x416 del manip
+        frame_1080 = in_video.getCvFrame()  # 1080p del stream original
+        frame_416 = manip_queue.get().getCvFrame()  # 416x416 del manip
 
         # Guardar imagen original 1080p
         img_original_path = os.path.join(output_dir, filename.replace('.mp4', '_original.jpg'))
@@ -237,6 +237,10 @@ with dai.Device(pipeline) as device:
         person_counts = []
         out_roi_frames = 0
 
+        # Para guardar el último frame de cada stream
+        last_frame_1080 = None
+        last_frame_416 = None
+
         try:
             while True:
                 # Usa el primer frame leído antes del bucle
@@ -248,6 +252,10 @@ with dai.Device(pipeline) as device:
                     in_detections = detections_queue.get()
                     current_frame = in_video.getCvFrame()
                     current_detections = in_detections
+
+                # Guarda el último frame de cada stream
+                last_frame_1080 = current_frame
+                last_frame_416 = manip_queue.get().getCvFrame()
 
                 scale_x = current_frame.shape[1] / original_width
                 scale_y = current_frame.shape[0] / original_height
@@ -321,6 +329,13 @@ with dai.Device(pipeline) as device:
             logging.error(f"Error durante la grabación: {e}")
         finally:
             out.release()
+            # Guardar imagen final de cada stream
+            if last_frame_1080 is not None:
+                img_final_1080 = os.path.join(output_dir, filename.replace('.mp4', '_final_1080.jpg'))
+                cv2.imwrite(img_final_1080, last_frame_1080)
+            if last_frame_416 is not None:
+                img_final_416 = os.path.join(output_dir, filename.replace('.mp4', '_final_416.jpg'))
+                cv2.imwrite(img_final_416, last_frame_416)
             # Guardar resumen del segmento en el CSV del día
             pct_left = 100 * roi_left_frames / frames_in_segment if frames_in_segment else 0
             pct_center = 100 * roi_center_frames / frames_in_segment if frames_in_segment else 0
