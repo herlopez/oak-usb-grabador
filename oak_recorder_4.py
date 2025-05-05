@@ -155,7 +155,7 @@ with dai.Device(pipeline) as device:
         os.makedirs(output_dir, exist_ok=True)
 
         # CSV setup en la carpeta del día (una sola fila por segmento)
-        csv_path = os.path.join(VIDEO_DIR, day_folder, "person_stats.csv")
+        csv_path = os.path.join(VIDEO_DIR, day_folder, f"{day_folder}_stats.csv")
         new_csv = not os.path.exists(csv_path)
         csv_file = open(csv_path, "a", newline="")
         import csv
