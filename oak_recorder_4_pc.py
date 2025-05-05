@@ -161,35 +161,48 @@ while True:
                 hinge_detected_yolo = True
                 hinge_bbox = (x1, y1, x2, y2)  # <-- Guarda el bbox
 
-    # --- Detección del hinge por figura y contraste ---
+    # --- Detección del hinge por figura y contraste (solo el objeto grande) ---
     HINGE_BRIGHTNESS_THRESHOLD = 150
     hinge_roi = frame[roi_hinge_scaled[1]:roi_hinge_scaled[1]+roi_hinge_scaled[3],
                     roi_hinge_scaled[0]:roi_hinge_scaled[0]+roi_hinge_scaled[2]]
     hinge_gray = cv2.cvtColor(hinge_roi, cv2.COLOR_BGR2GRAY)
     _, hinge_bin = cv2.threshold(hinge_gray, HINGE_BRIGHTNESS_THRESHOLD, 255, cv2.THRESH_BINARY)
     contours, _ = cv2.findContours(hinge_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    hinge_detected_shape = False
+
+    # Encuentra el contorno más grande (mayor área)
+    max_area = 0
+    max_cnt = None
     for cnt in contours:
         area = cv2.contourArea(cnt)
-        if area > 0.01 * hinge_bin.shape[0] * hinge_bin.shape[1]:
-            epsilon = 0.05 * cv2.arcLength(cnt, True)
-            approx = cv2.approxPolyDP(cnt, epsilon, True)
-            if 4 <= len(approx) <= 6:
-                # Contraste local
-                mask = np.zeros_like(hinge_gray)
+        if area > max_area:
+            max_area = area
+            max_cnt = cnt
+
+    
+    hinge_detected_shape = False
+    if max_cnt is not None and max_area > 0.01 * hinge_bin.shape[0] * hinge_bin.shape[1]:
+        epsilon = 0.05 * cv2.arcLength(max_cnt, True)
+        approx = cv2.approxPolyDP(max_cnt, epsilon, True)
+        if len(approx) >= 4:
+            # Contraste local
+            mask = np.zeros_like(hinge_gray)
+            cv2.drawContours(mask, [approx], -1, 255, -1)
+            mean_in = cv2.mean(hinge_gray, mask=mask)[0]
+            mean_out = cv2.mean(hinge_gray, mask=cv2.bitwise_not(mask))[0]
+            if abs(mean_in - mean_out) > 30:
+                hinge_detected_shape = True
+                x, y, w, h = cv2.boundingRect(approx)
+                aspect_ratio = max(w, h) / (min(w, h) + 1e-5)
+                # No descartes por aspect_ratio, o usa un valor muy alto
+                # if aspect_ratio > 100:
+                #     continue
+                x1 = roi_hinge_scaled[0] + x
+                y1 = roi_hinge_scaled[1] + y
+                x2 = x1 + w
+                y2 = y1 + h
+                hinge_bbox = (x1, y1, x2, y2)
                 cv2.drawContours(frame_roi, [approx + [roi_hinge_scaled[0], roi_hinge_scaled[1]]], -1, (255, 0, 255), 2)
-                mean_in = cv2.mean(hinge_gray, mask=mask)[0]
-                mean_out = cv2.mean(hinge_gray, mask=cv2.bitwise_not(mask))[0]
-                if abs(mean_in - mean_out) > 30:  # Contraste suficiente
-                    hinge_detected_shape = True
-                    # Calcula el bbox absoluto del contorno detectado
-                    x, y, w, h = cv2.boundingRect(approx)
-                    x1 = roi_hinge_scaled[0] + x
-                    y1 = roi_hinge_scaled[1] + y
-                    x2 = x1 + w
-                    y2 = y1 + h
-                    hinge_bbox = (x1, y1, x2, y2)
-                    break
+                cv2.putText(frame_roi, f"AR:{aspect_ratio:.1f}", (x1, y2 + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,0,255), 2)
 
     # --- Combinación de ambos métodos ---
     hinge_detected = hinge_detected_yolo or hinge_detected_shape
