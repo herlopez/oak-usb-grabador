@@ -41,10 +41,10 @@ if new_csv:
 # Función para escalar ROIs
 def escalar_roi(roi, shape, orig_shape):
     return (
-        int(roi[0] * shape[1] / orig_shape[0]),
-        int(roi[1] * shape[0] / orig_shape[1]),
-        int(roi[2] * shape[1] / orig_shape[0]),
-        int(roi[3] * shape[0] / orig_shape[1])
+        int(roi[0] * shape[1] / orig_shape[1]),
+        int(roi[1] * shape[0] / orig_shape[0]),
+        int(roi[2] * shape[1] / orig_shape[1]),
+        int(roi[3] * shape[0] / orig_shape[0])
     )
 
 # Procesamiento de video
@@ -143,7 +143,7 @@ while True:
         cv2.putText(frame_roi, roi_label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
         person_count_this_frame += 1
 
-    # Detección de objetos no persona para hinge
+    # Detección de objetos no persona para hinge con entrada por izquierda o arriba
     for box in detections:
         cls = int(box.cls[0])
         if cls != 0:
@@ -155,12 +155,16 @@ while True:
             inter_w = max(0, inter_x2 - inter_x1)
             inter_h = max(0, inter_y2 - inter_y1)
             inter_area = inter_w * inter_h
-            if roi_hinge_area > 0 and (inter_area / roi_hinge_area) > 0.4:
-                objeto_hinge_presente = True
+            if roi_hinge_area > 0 and (inter_area / roi_hinge_area) > 0.1:
+                # Chequea si el objeto entra desde la izquierda o arriba
+                entra_por_izquierda = (x1 < roi_hinge_scaled[0] + 10) and (inter_w > 0)
+                entra_por_arriba = (y1 < roi_hinge_scaled[1] + 10) and (inter_h > 0)
+                if entra_por_izquierda or entra_por_arriba:
+                    objeto_hinge_presente = True
 
     if objeto_hinge_presente and not objeto_hinge_presente_anterior:
         objeto_hinge_count += 1
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] Event HINGE detected (Hinge in ROI)")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Event HINGE detected (Hinge in ROI, entrada por izq/arriba)")
 
     objeto_hinge_presente_anterior = objeto_hinge_presente
 
