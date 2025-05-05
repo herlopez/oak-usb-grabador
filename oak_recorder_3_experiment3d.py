@@ -1,9 +1,3 @@
-#  Graba archivo de 416x416 con deteccion de profundida y lo analiza para contar personas en 3 ROIs
-#  y fuera de ellas. Guarda estadísticas en CSV y elimina archivos viejos
-#  para mantener el uso del disco por debajo de 800 GB.
-#  Requiere la librería SORT para el seguimiento de objetos.
-#  Se recomienda usar un SSD NVMe para evitar problemas de escritura.
-
 import depthai as dai
 import cv2
 import numpy as np
@@ -58,7 +52,8 @@ def esperar_hasta_proximo_multiplo(minuto_multiplo):
 # --- Configuración de ROIs y pipeline ---
 roi_left_orig   = (100, 500, 350, 250)
 roi_center_orig = (880, 400, 130, 150)
-roi_right_orig  = (1200, 300, 350, 250)
+roi_right_orig  = (1200, 250, 350, 300)
+roi_hinge  = (1400, 380, 500, 200)
 original_width = 1920
 original_height = 1080
 
@@ -78,7 +73,12 @@ cam_rgb.setInterleaved(False)
 cam_rgb.setFps(10)
 cam_rgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
 
-# Para la red neuronal (416x416)
+# XLinkOut para la imagen original de la cámara (1080p)
+xout_cam = pipeline.createXLinkOut()
+xout_cam.setStreamName("cam")
+cam_rgb.video.link(xout_cam.input)
+
+# Nodo manip para 416x416
 manip = pipeline.createImageManip()
 manip.initialConfig.setResize(416, 416)
 manip.initialConfig.setKeepAspectRatio(False)
@@ -86,7 +86,6 @@ manip.initialConfig.setFrameType(dai.ImgFrame.Type.BGR888p)
 manip.setMaxOutputFrameSize(416 * 416 * 3)
 cam_rgb.video.link(manip.inputImage)
 
-# Para profundidad
 mono_left = pipeline.createMonoCamera()
 mono_right = pipeline.createMonoCamera()
 stereo = pipeline.createStereoDepth()
@@ -118,19 +117,15 @@ detection_nn.setAnchorMasks({
 
 manip.out.link(detection_nn.input)
 
-# Salida de video original (1920x1080)
-xout_video = pipeline.createXLinkOut()
-xout_video.setStreamName("video")
-cam_rgb.video.link(xout_video.input)
-
-# Salida de detecciones
 xout_nn = pipeline.createXLinkOut()
-xout_nn.setStreamName("detections")
-detection_nn.out.link(xout_nn.input)
-
-# Salida de profundidad (opcional, para futuro uso 3D)
 xout_depth = pipeline.createXLinkOut()
+xout_manip = pipeline.createXLinkOut()  # Para obtener el frame 416x416
+xout_nn.setStreamName("detections")
 xout_depth.setStreamName("depth")
+xout_manip.setStreamName("manip")
+
+manip.out.link(xout_manip.input)
+detection_nn.out.link(xout_nn.input)
 stereo.depth.link(xout_depth.input)
 
 # --- Grabación segmentada ---
@@ -139,9 +134,10 @@ fps = 10
 segment_duration = 60 * MINUTO_MULTIPLO
 
 with dai.Device(pipeline) as device:
-    video_queue = device.getOutputQueue("video", maxSize=4, blocking=False)         # 1920x1080
+    cam_queue = device.getOutputQueue("cam", maxSize=4, blocking=False)
     detections_queue = device.getOutputQueue("detections", maxSize=4, blocking=False)
-    # depth_queue = device.getOutputQueue("depth", maxSize=4, blocking=False)  # Para futuro uso 3D
+    manip_queue = device.getOutputQueue("manip", maxSize=4, blocking=False)
+    depth_queue = device.getOutputQueue("depth", maxSize=4, blocking=False)
 
     esperar_hasta_proximo_multiplo(MINUTO_MULTIPLO)
 
@@ -155,24 +151,48 @@ with dai.Device(pipeline) as device:
         os.makedirs(output_dir, exist_ok=True)
 
         # CSV setup en la carpeta del día (una sola fila por segmento)
-        csv_path = os.path.join(VIDEO_DIR, day_folder, "person_stats.csv")
+        csv_path = os.path.join(VIDEO_DIR, day_folder, f"{day_folder}_stats.csv")
         new_csv = not os.path.exists(csv_path)
         csv_file = open(csv_path, "a", newline="")
         import csv
         csv_writer = csv.writer(csv_file)
         if new_csv:
             csv_writer.writerow([
-                "Fecha", "Hora", "Minuto", "%ROI_Left", "%ROI_Center", "%ROI_Right", "%Fuera_ROI", "Personas", "VideoFile", "Script"
+                "Fecha", "Hora", "Minuto", "%ROI_Left", "%ROI_Center", "%ROI_Right", "%Fuera_ROI", "Personas", "VideoFile", "Script", "objeto_hinge",
+                "Profundidad_ROI_Left", "Profundidad_ROI_Center", "Profundidad_ROI_Right"
             ])
         filename = now.strftime(f"output_%Y%m%d_%H%M%S.mp4")
         filepath = os.path.join(output_dir, filename)
 
         # Espera el primer frame para obtener el tamaño real
-        in_video = video_queue.get()
+        in_cam = cam_queue.get()
         in_detections = detections_queue.get()
-        frame = in_video.getCvFrame()
-        frame_height, frame_width = frame.shape[:2]
+        in_manip = manip_queue.get()
+        in_depth = depth_queue.get()
+        frame_1080 = in_cam.getCvFrame()
+        frame_416 = in_manip.getCvFrame()
+        depth_frame = in_depth.getFrame()
 
+        # Guardar imagen original 1080p
+        img_dir = os.path.join(output_dir, "img")
+        os.makedirs(img_dir, exist_ok=True)
+        img_original_path = os.path.join(img_dir, filename.replace('.mp4', '_1080p.jpg'))
+        cv2.imwrite(img_original_path, frame_1080)
+
+        # Guardar imagen original 416x416
+        img_416_path = os.path.join(img_dir, filename.replace('.mp4', '_416.jpg'))
+        cv2.imwrite(img_416_path, frame_416)
+
+        # Función para escalar ROIs
+        def escalar_roi(roi, shape, orig_shape):
+            return (
+                int(roi[0] * shape[1] / orig_shape[0]),
+                int(roi[1] * shape[0] / orig_shape[1]),
+                int(roi[2] * shape[1] / orig_shape[0]),
+                int(roi[3] * shape[0] / orig_shape[1])
+            )
+
+        frame_height, frame_width = frame_1080.shape[:2]
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(filepath, fourcc, fps, (frame_width, frame_height))
 
@@ -180,95 +200,134 @@ with dai.Device(pipeline) as device:
             print(f"Error: No se pudo abrir el archivo de video para escritura: {filepath}")
             logging.error(f"No se pudo abrir el archivo de video para escritura: {filepath}")
             csv_file.close()
-            continue  # Salta este segmento
+            continue
 
         start_time = time.time()
         print(f"Grabando: {filepath}")
         logging.info(f"Inicio de grabación: {filepath}")
 
-        # Estadísticas acumuladas para el segmento
         frames_in_segment = 0
         roi_left_frames = 0
         roi_center_frames = 0
         roi_right_frames = 0
         person_counts = []
         out_roi_frames = 0
+        objeto_hinge_count = 0
+        objeto_hinge_presente_anterior = False
+
+        prof_left = []
+        prof_center = []
+        prof_right = []
+
+        last_frame_1080 = None
+        last_frame_416 = None
 
         try:
             while True:
-                # Usa el primer frame leído antes del bucle
                 if frames_in_segment == 0:
-                    current_frame = frame
+                    current_frame_1080 = frame_1080
                     current_detections = in_detections
+                    current_frame_416 = frame_416
+                    current_depth = depth_frame
                 else:
-                    in_video = video_queue.get()
+                    in_cam = cam_queue.get()
                     in_detections = detections_queue.get()
-                    current_frame = in_video.getCvFrame()
+                    in_manip = manip_queue.get()
+                    in_depth = depth_queue.get()
+                    current_frame_1080 = in_cam.getCvFrame()
                     current_detections = in_detections
+                    current_frame_416 = in_manip.getCvFrame()
+                    current_depth = in_depth.getFrame()
 
-                scale_x = current_frame.shape[1] / original_width
-                scale_y = current_frame.shape[0] / original_height
+                last_frame_1080 = current_frame_1080
+                last_frame_416 = current_frame_416
 
-                def escalar_roi(roi):
-                    return (
-                        int(roi[0] * scale_x),
-                        int(roi[1] * scale_y),
-                        int(roi[2] * scale_x),
-                        int(roi[3] * scale_y)
-                    )
+                roi_left = escalar_roi(roi_left_orig, current_frame_1080.shape, (original_width, original_height))
+                roi_center = escalar_roi(roi_center_orig, current_frame_1080.shape, (original_width, original_height))
+                roi_right = escalar_roi(roi_right_orig, current_frame_1080.shape, (original_width, original_height))
+                roi_hinge_scaled = escalar_roi(roi_hinge, current_frame_1080.shape, (original_width, original_height))
+                roi_hinge_area = roi_hinge_scaled[2] * roi_hinge_scaled[3]
+                objeto_hinge_presente = False
 
-                roi_left = escalar_roi(roi_left_orig)
-                roi_center = escalar_roi(roi_center_orig)
-                roi_right = escalar_roi(roi_right_orig)
-
-                # YOLO + SORT solo personas
-                detections = []
-                for detection in current_detections.detections:
-                    if detection.label == 0:
-                        x1 = int(detection.xmin * current_frame.shape[1])
-                        y1 = int(detection.ymin * current_frame.shape[0])
-                        x2 = int(detection.xmax * current_frame.shape[1])
-                        y2 = int(detection.ymax * current_frame.shape[0])
-                        conf = detection.confidence
-                        detections.append([x1, y1, x2, y2, conf])
-
-                tracks = tracker.update(np.array(detections)) if detections else []
-
-                ids_presentes = set()
                 roi_left_present = False
                 roi_center_present = False
                 roi_right_present = False
+                person_count_this_frame = 0
 
-                for track in tracks:
-                    x1, y1, x2, y2, track_id = map(int, track)
-                    ids_presentes.add(track_id)
+                # --- Visualización sobre el frame ---
+                frame_vis = current_frame_1080.copy()
+
+                for detection in current_detections.detections:
+                    x1 = int(detection.xmin * current_frame_1080.shape[1])
+                    y1 = int(detection.ymin * current_frame_1080.shape[0])
+                    x2 = int(detection.xmax * current_frame_1080.shape[1])
+                    y2 = int(detection.ymax * current_frame_1080.shape[0])
                     cx = int((x1 + x2) / 2)
                     cy = int((y1 + y2) / 2)
 
-                    if roi_left[0] <= cx < roi_left[0] + roi_left[2] and roi_left[1] <= cy < roi_left[1] + roi_left[3]:
-                        roi_left_present = True
-                    elif roi_center[0] <= cx < roi_center[0] + roi_center[2] and roi_center[1] <= cy < roi_center[1] + roi_center[3]:
-                        roi_center_present = True
-                    elif roi_right[0] <= cx < roi_right[0] + roi_right[2] and roi_right[1] <= cy < roi_right[1] + roi_right[3]:
-                        roi_right_present = True
+                    if detection.label == 0:
+                        person_count_this_frame += 1
+                        if 0 <= cy < current_depth.shape[0] and 0 <= cx < current_depth.shape[1]:
+                            depth_value = int(current_depth[cy, cx])
+                        else:
+                            depth_value = 0
 
-                # Acumular estadísticas para el segmento
-                frames_in_segment += 1
-                person_counts.append(len(ids_presentes))
+                        if roi_left[0] <= cx < roi_left[0] + roi_left[2] and roi_left[1] <= cy < roi_left[1] + roi_left[3]:
+                            color = (255, 0, 0)
+                            roi_left_present = True
+                            prof_left.append(depth_value)
+                            roi_label = f"Left {depth_value}mm"
+                        elif roi_center[0] <= cx < roi_center[0] + roi_center[2] and roi_center[1] <= cy < roi_center[1] + roi_center[3]:
+                            color = (0, 255, 0)
+                            roi_center_present = True
+                            prof_center.append(depth_value)
+                            roi_label = f"Center {depth_value}mm"
+                        elif roi_right[0] <= cx < roi_right[0] + roi_right[2] and roi_right[1] <= cy < roi_right[1] + roi_right[3]:
+                            color = (0, 0, 255)
+                            roi_right_present = True
+                            prof_right.append(depth_value)
+                            roi_label = f"Right {depth_value}mm"
+                        else:
+                            color = (0, 255, 255)
+                            roi_label = f"Fuera {depth_value}mm"
+
+                        cv2.rectangle(frame_vis, (x1, y1), (x2, y2), color, 2)
+                        cv2.putText(frame_vis, roi_label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+                    else:
+                        inter_x1 = max(x1, roi_hinge_scaled[0])
+                        inter_y1 = max(y1, roi_hinge_scaled[1])
+                        inter_x2 = min(x2, roi_hinge_scaled[0] + roi_hinge_scaled[2])
+                        inter_y2 = min(y2, roi_hinge_scaled[1] + roi_hinge_scaled[3])
+                        inter_w = max(0, inter_x2 - inter_x1)
+                        inter_h = max(0, inter_y2 - inter_y1)
+                        inter_area = inter_w * inter_h
+                        if roi_hinge_area > 0 and (inter_area / roi_hinge_area) > 0.2:
+                            objeto_hinge_presente = True
+
+                cv2.rectangle(frame_vis, (roi_left[0], roi_left[1]), (roi_left[0]+roi_left[2], roi_left[1]+roi_left[3]), (255,0,0), 2)
+                cv2.rectangle(frame_vis, (roi_center[0], roi_center[1]), (roi_center[0]+roi_center[2], roi_center[1]+roi_center[3]), (0,255,0), 2)
+                cv2.rectangle(frame_vis, (roi_right[0], roi_right[1]), (roi_right[0]+roi_right[2], roi_right[1]+roi_right[3]), (0,0,255), 2)
+                cv2.rectangle(frame_vis, (roi_hinge_scaled[0], roi_hinge_scaled[1]), (roi_hinge_scaled[0]+roi_hinge_scaled[2], roi_hinge_scaled[1]+roi_hinge_scaled[3]), (0,128,255), 2)
+
+                cv2.imshow("Video con ROIs y Profundidad", frame_vis)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    print("Procesamiento interrumpido por el usuario.")
+                    break
+
+                person_counts.append(person_count_this_frame)
                 if roi_left_present:
                     roi_left_frames += 1
                 if roi_center_present:
                     roi_center_frames += 1
                 if roi_right_present:
                     roi_right_frames += 1
-                if (len(ids_presentes) > 0) and not (roi_left_present or roi_center_present or roi_right_present):
+                if (person_count_this_frame > 0) and not (roi_left_present or roi_center_present or roi_right_present):
                     out_roi_frames += 1
 
-                out.write(current_frame)
+                out.write(current_frame_1080)
+                frames_in_segment += 1
 
                 if time.time() - start_time >= segment_duration:
-                    print(f"Grabación de {MINUTO_MULTIPLO} minuto(s) completada.")
-                    logging.info(f"Fin de grabación: {filepath}")
                     break
         except KeyboardInterrupt:
             print("Grabación interrumpida por el usuario.")
@@ -278,12 +337,21 @@ with dai.Device(pipeline) as device:
             logging.error(f"Error durante la grabación: {e}")
         finally:
             out.release()
-            # Guardar resumen del segmento en el CSV del día
+            if last_frame_1080 is not None:
+                img_final_1080 = os.path.join(img_dir, filename.replace('.mp4', '_1080p_last.jpg'))
+                cv2.imwrite(img_final_1080, last_frame_1080)
+            if last_frame_416 is not None:
+                img_final_416 = os.path.join(img_dir, filename.replace('.mp4', '_416_last.jpg'))
+                cv2.imwrite(img_final_416, last_frame_416)
             pct_left = 100 * roi_left_frames / frames_in_segment if frames_in_segment else 0
             pct_center = 100 * roi_center_frames / frames_in_segment if frames_in_segment else 0
             pct_right = 100 * roi_right_frames / frames_in_segment if frames_in_segment else 0
             pct_out_roi = 100 * out_roi_frames / frames_in_segment if frames_in_segment else 0
             avg_personas = int(np.ceil(np.mean(person_counts))) if person_counts else 0
+
+            prof_left_avg = int(np.mean([d for d in prof_left if d > 0])) if prof_left else 0
+            prof_center_avg = int(np.mean([d for d in prof_center if d > 0])) if prof_center else 0
+            prof_right_avg = int(np.mean([d for d in prof_right if d > 0])) if prof_right else 0
 
             fecha = now.strftime('%Y-%m-%d')
             hora = now.strftime('%H')
@@ -292,8 +360,15 @@ with dai.Device(pipeline) as device:
             csv_writer.writerow([
                 fecha, hora, minuto,
                 f"{pct_left:.1f}", f"{pct_center:.1f}", f"{pct_right:.1f}", f"{pct_out_roi:.1f}", avg_personas,
-                filename, "oak_recorder_3.py"
+                filename, "oak_recorder_4.py", objeto_hinge_count,
+                prof_left_avg, prof_center_avg, prof_right_avg
             ])
+            print(
+                f"%ROI_Left={pct_left:.1f} %ROI_Center={pct_center:.1f} %ROI_Right={pct_right:.1f} "
+                f"%Fuera_ROI={pct_out_roi:.1f} Personas={avg_personas} "
+                f"VideoFile={filename} objeto_hinge={objeto_hinge_count} "
+                f"Profundidad_Left={prof_left_avg} Profundidad_Center={prof_center_avg} Profundidad_Right={prof_right_avg}"
+            )
             csv_file.flush()
             csv_file.close()
 
