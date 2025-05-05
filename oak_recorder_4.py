@@ -266,37 +266,61 @@ with dai.Device(pipeline) as device:
                 last_frame_1080 = current_frame_1080
                 last_frame_416 = current_frame_416
 
-                # --- Evento objeto_hinge (solo objetos que NO sean persona, y solo cuenta una vez por evento) ---
+                # --- Detección y estadísticas de personas y objeto_hinge ---
                 roi_hinge_scaled = escalar_roi(roi_hinge, current_frame_1080.shape, (original_width, original_height))
                 roi_hinge_area = roi_hinge_scaled[2] * roi_hinge_scaled[3]
                 objeto_hinge_presente = False
 
+                roi_left_present = False
+                roi_center_present = False
+                roi_right_present = False
+                person_count_this_frame = 0
+
                 for detection in current_detections.detections:
-                    if detection.label == 0:
-                        continue  # Ignora personas
                     x1 = int(detection.xmin * current_frame_1080.shape[1])
                     y1 = int(detection.ymin * current_frame_1080.shape[0])
                     x2 = int(detection.xmax * current_frame_1080.shape[1])
                     y2 = int(detection.ymax * current_frame_1080.shape[0])
-                    # Intersección con ROI hinge
-                    inter_x1 = max(x1, roi_hinge_scaled[0])
-                    inter_y1 = max(y1, roi_hinge_scaled[1])
-                    inter_x2 = min(x2, roi_hinge_scaled[0] + roi_hinge_scaled[2])
-                    inter_y2 = min(y2, roi_hinge_scaled[1] + roi_hinge_scaled[3])
-                    inter_w = max(0, inter_x2 - inter_x1)
-                    inter_h = max(0, inter_y2 - inter_y1)
-                    inter_area = inter_w * inter_h
-                    if roi_hinge_area > 0 and (inter_area / roi_hinge_area) > 0.4:
-                        objeto_hinge_presente = True
-                        break
+                    cx = int((x1 + x2) / 2)
+                    cy = int((y1 + y2) / 2)
+
+                    if detection.label == 0:
+                        # Persona: cuenta para ROIs y estadísticas
+                        person_count_this_frame += 1
+                        if roi_left[0] <= cx < roi_left[0] + roi_left[2] and roi_left[1] <= cy < roi_left[1] + roi_left[3]:
+                            roi_left_present = True
+                        elif roi_center[0] <= cx < roi_center[0] + roi_center[2] and roi_center[1] <= cy < roi_center[1] + roi_center[3]:
+                            roi_center_present = True
+                        elif roi_right[0] <= cx < roi_right[0] + roi_right[2] and roi_right[1] <= cy < roi_right[1] + roi_right[3]:
+                            roi_right_present = True
+                    else:
+                        # Objeto NO persona: cuenta para objeto_hinge
+                        inter_x1 = max(x1, roi_hinge_scaled[0])
+                        inter_y1 = max(y1, roi_hinge_scaled[1])
+                        inter_x2 = min(x2, roi_hinge_scaled[0] + roi_hinge_scaled[2])
+                        inter_y2 = min(y2, roi_hinge_scaled[1] + roi_hinge_scaled[3])
+                        inter_w = max(0, inter_x2 - inter_x1)
+                        inter_h = max(0, inter_y2 - inter_y1)
+                        inter_area = inter_w * inter_h
+                        if roi_hinge_area > 0 and (inter_area / roi_hinge_area) > 0.4:
+                            objeto_hinge_presente = True
 
                 if objeto_hinge_presente and not objeto_hinge_presente_anterior:
                     objeto_hinge_count += 1
                 objeto_hinge_presente_anterior = objeto_hinge_presente
 
-                # ... (resto del procesamiento, detección, estadísticas, etc.) ...
-                out.write(current_frame_1080)
+                # Estadísticas de personas y ROIs
+                person_counts.append(person_count_this_frame)
+                if roi_left_present:
+                    roi_left_frames += 1
+                if roi_center_present:
+                    roi_center_frames += 1
+                if roi_right_present:
+                    roi_right_frames += 1
+                if (person_count_this_frame > 0) and not (roi_left_present or roi_center_present or roi_right_present):
+                    out_roi_frames += 1
 
+                out.write(current_frame_1080)
                 frames_in_segment += 1
 
                 if time.time() - start_time >= segment_duration:

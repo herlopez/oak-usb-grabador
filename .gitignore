@@ -8,3 +8,8 @@
 /.mypy_cache
 /.pytest_cache
 /.mypy_cache
+yolov5s.pt
+yolov5m.pt
+yolov5l.pt
+yolov5x.pt
+yolov5nu.pt
