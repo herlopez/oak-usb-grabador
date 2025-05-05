@@ -169,10 +169,8 @@ with dai.Device(pipeline) as device:
         # Espera el primer frame para obtener el tamaño real
         in_video = video_queue.get()
         in_detections = detections_queue.get()
-        frame = in_video.getCvFrame()
-        frame_height, frame_width = frame.shape[:2]
-        frame_1080 = frame  # 1080p
-        frame_416 = manip_queue.get().getCvFrame()  # 416x416
+        frame_1080 = in_video.getCvFrame()  # <-- 1080p del stream original
+        frame_416 = manip_queue.get().getCvFrame()  # <-- 416x416 del manip
 
         # Guardar imagen original 1080p
         img_original_path = os.path.join(output_dir, filename.replace('.mp4', '_original.jpg'))
