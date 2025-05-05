@@ -133,8 +133,8 @@ with dai.Device(pipeline) as device:
     detections_queue = device.getOutputQueue("detections", maxSize=4, blocking=False)
     depth_queue = device.getOutputQueue("depth", maxSize=4, blocking=False)
 
-    cv2.namedWindow('Detection', cv2.WINDOW_NORMAL)
-    cv2.resizeWindow('Detection', 1280, 720)
+    # cv2.namedWindow('Detection', cv2.WINDOW_NORMAL)
+    # cv2.resizeWindow('Detection', 1280, 720)
 
     esperar_hasta_proximo_multiplo(MINUTO_MULTIPLO)
 
@@ -280,10 +280,10 @@ with dai.Device(pipeline) as device:
 
                 out.write(frame)  # <-- Graba el frame procesado
 
-                cv2.imshow('Detection', frame)
-                key = cv2.waitKey(1) & 0xFF
-                if key == ord('q'):
-                    raise KeyboardInterrupt
+                # cv2.imshow('Detection', frame)
+                # key = cv2.waitKey(1) & 0xFF
+                # if key == ord('q'):
+                #     raise KeyboardInterrupt
                 if time.time() - start_time >= segment_duration:
                     print(f"Grabación de {MINUTO_MULTIPLO} minuto(s) completada.")
                     logging.info(f"Fin de grabación: {filepath}")
