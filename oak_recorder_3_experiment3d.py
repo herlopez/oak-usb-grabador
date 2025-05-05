@@ -1,4 +1,4 @@
-#  Graba archivo de 416x416 y lo analiza para contar personas en 3 ROIs
+#  Graba archivo de 416x416 con deteccion de profundida y lo analiza para contar personas en 3 ROIs
 #  y fuera de ellas. Guarda estadísticas en CSV y elimina archivos viejos
 #  para mantener el uso del disco por debajo de 800 GB.
 #  Requiere la librería SORT para el seguimiento de objetos.
@@ -58,8 +58,7 @@ def esperar_hasta_proximo_multiplo(minuto_multiplo):
 # --- Configuración de ROIs y pipeline ---
 roi_left_orig   = (100, 500, 350, 250)
 roi_center_orig = (880, 400, 130, 150)
-roi_right_orig  = (1200, 250, 350, 300)
-roi_hinge  = (1400, 400, 416, 416)
+roi_right_orig  = (1200, 300, 350, 250)
 original_width = 1920
 original_height = 1080
 
@@ -79,6 +78,7 @@ cam_rgb.setInterleaved(False)
 cam_rgb.setFps(10)
 cam_rgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
 
+# Para la red neuronal (416x416)
 manip = pipeline.createImageManip()
 manip.initialConfig.setResize(416, 416)
 manip.initialConfig.setKeepAspectRatio(False)
@@ -86,6 +86,7 @@ manip.initialConfig.setFrameType(dai.ImgFrame.Type.BGR888p)
 manip.setMaxOutputFrameSize(416 * 416 * 3)
 cam_rgb.video.link(manip.inputImage)
 
+# Para profundidad
 mono_left = pipeline.createMonoCamera()
 mono_right = pipeline.createMonoCamera()
 stereo = pipeline.createStereoDepth()
@@ -117,18 +118,19 @@ detection_nn.setAnchorMasks({
 
 manip.out.link(detection_nn.input)
 
-xout_rgb = pipeline.createXLinkOut()
-xout_nn = pipeline.createXLinkOut()
-xout_depth = pipeline.createXLinkOut()
-xout_manip = pipeline.createXLinkOut()  # Para obtener el frame 416x416
-xout_rgb.setStreamName("video")
-xout_nn.setStreamName("detections")
-xout_depth.setStreamName("depth")
-xout_manip.setStreamName("manip")
+# Salida de video original (1920x1080)
+xout_video = pipeline.createXLinkOut()
+xout_video.setStreamName("video")
+cam_rgb.video.link(xout_video.input)
 
-manip.out.link(xout_rgb.input)
-manip.out.link(xout_manip.input)
+# Salida de detecciones
+xout_nn = pipeline.createXLinkOut()
+xout_nn.setStreamName("detections")
 detection_nn.out.link(xout_nn.input)
+
+# Salida de profundidad (opcional, para futuro uso 3D)
+xout_depth = pipeline.createXLinkOut()
+xout_depth.setStreamName("depth")
 stereo.depth.link(xout_depth.input)
 
 # --- Grabación segmentada ---
@@ -137,10 +139,9 @@ fps = 10
 segment_duration = 60 * MINUTO_MULTIPLO
 
 with dai.Device(pipeline) as device:
-    video_queue = device.getOutputQueue("video", maxSize=4, blocking=False)
+    video_queue = device.getOutputQueue("video", maxSize=4, blocking=False)         # 1920x1080
     detections_queue = device.getOutputQueue("detections", maxSize=4, blocking=False)
-    manip_queue = device.getOutputQueue("manip", maxSize=4, blocking=False)
-    # depth_queue = device.getOutputQueue("depth", maxSize=4, blocking=False)  # No se usa para solo personas
+    # depth_queue = device.getOutputQueue("depth", maxSize=4, blocking=False)  # Para futuro uso 3D
 
     esperar_hasta_proximo_multiplo(MINUTO_MULTIPLO)
 
@@ -171,47 +172,6 @@ with dai.Device(pipeline) as device:
         in_detections = detections_queue.get()
         frame = in_video.getCvFrame()
         frame_height, frame_width = frame.shape[:2]
-        frame_1080 = frame  # 1080p
-        frame_416 = manip_queue.get().getCvFrame()  # 416x416
-
-        # Guardar imagen original 1080p
-        img_original_path = os.path.join(output_dir, filename.replace('.mp4', '_original.jpg'))
-        cv2.imwrite(img_original_path, frame_1080)
-
-        # Guardar imagen original 416x416
-        img_416_path = os.path.join(output_dir, filename.replace('.mp4', '_416.jpg'))
-        cv2.imwrite(img_416_path, frame_416)
-
-        # Función para escalar ROIs
-        def escalar_roi(roi, shape, orig_shape):
-            return (
-                int(roi[0] * shape[1] / orig_shape[0]),
-                int(roi[1] * shape[0] / orig_shape[1]),
-                int(roi[2] * shape[1] / orig_shape[0]),
-                int(roi[3] * shape[0] / orig_shape[1])
-            )
-
-        # 1080p con ROIs
-        frame_1080_roi = frame_1080.copy()
-        roi_left = escalar_roi(roi_left_orig, frame_1080.shape, (original_width, original_height))
-        roi_center = escalar_roi(roi_center_orig, frame_1080.shape, (original_width, original_height))
-        roi_right = escalar_roi(roi_right_orig, frame_1080.shape, (original_width, original_height))
-        cv2.rectangle(frame_1080_roi, (roi_left[0], roi_left[1]), (roi_left[0]+roi_left[2], roi_left[1]+roi_left[3]), (255,0,0), 2)
-        cv2.rectangle(frame_1080_roi, (roi_center[0], roi_center[1]), (roi_center[0]+roi_center[2], roi_center[1]+roi_center[3]), (0,255,0), 2)
-        cv2.rectangle(frame_1080_roi, (roi_right[0], roi_right[1]), (roi_right[0]+roi_right[2], roi_right[1]+roi_right[3]), (0,0,255), 2)
-        img_1080_roi_path = os.path.join(output_dir, filename.replace('.mp4', '_roi.jpg'))
-        cv2.imwrite(img_1080_roi_path, frame_1080_roi)
-
-        # 416x416 con ROIs
-        frame_416_roi = frame_416.copy()
-        roi_left_416 = escalar_roi(roi_left_orig, frame_416.shape, (original_width, original_height))
-        roi_center_416 = escalar_roi(roi_center_orig, frame_416.shape, (original_width, original_height))
-        roi_right_416 = escalar_roi(roi_right_orig, frame_416.shape, (original_width, original_height))
-        cv2.rectangle(frame_416_roi, (roi_left_416[0], roi_left_416[1]), (roi_left_416[0]+roi_left_416[2], roi_left_416[1]+roi_left_416[3]), (255,0,0), 2)
-        cv2.rectangle(frame_416_roi, (roi_center_416[0], roi_center_416[1]), (roi_center_416[0]+roi_center_416[2], roi_center_416[1]+roi_center_416[3]), (0,255,0), 2)
-        cv2.rectangle(frame_416_roi, (roi_right_416[0], roi_right_416[1]), (roi_right_416[0]+roi_right_416[2], roi_right_416[1]+roi_right_416[3]), (0,0,255), 2)
-        img_416_roi_path = os.path.join(output_dir, filename.replace('.mp4', '_416_roi.jpg'))
-        cv2.imwrite(img_416_roi_path, frame_416_roi)
 
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(filepath, fourcc, fps, (frame_width, frame_height))
