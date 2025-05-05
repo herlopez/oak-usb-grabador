@@ -196,9 +196,11 @@ with dai.Device(pipeline) as device:
         roi_left = escalar_roi(roi_left_orig, frame_1080.shape, (original_width, original_height))
         roi_center = escalar_roi(roi_center_orig, frame_1080.shape, (original_width, original_height))
         roi_right = escalar_roi(roi_right_orig, frame_1080.shape, (original_width, original_height))
+        roi_hinge_1080 = escalar_roi(roi_hinge, frame_1080.shape, (original_width, original_height))
         cv2.rectangle(frame_1080_roi, (roi_left[0], roi_left[1]), (roi_left[0]+roi_left[2], roi_left[1]+roi_left[3]), (255,0,0), 2)
         cv2.rectangle(frame_1080_roi, (roi_center[0], roi_center[1]), (roi_center[0]+roi_center[2], roi_center[1]+roi_center[3]), (0,255,0), 2)
         cv2.rectangle(frame_1080_roi, (roi_right[0], roi_right[1]), (roi_right[0]+roi_right[2], roi_right[1]+roi_right[3]), (0,0,255), 2)
+        cv2.rectangle(frame_1080_roi, (roi_hinge_1080[0], roi_hinge_1080[1]), (roi_hinge_1080[0]+roi_hinge_1080[2], roi_hinge_1080[1]+roi_hinge_1080[3]), (0,128,255), 2)
         img_1080_roi_path = os.path.join(output_dir, filename.replace('.mp4', '_roi.jpg'))
         cv2.imwrite(img_1080_roi_path, frame_1080_roi)
 
@@ -207,9 +209,11 @@ with dai.Device(pipeline) as device:
         roi_left_416 = escalar_roi(roi_left_orig, frame_416.shape, (original_width, original_height))
         roi_center_416 = escalar_roi(roi_center_orig, frame_416.shape, (original_width, original_height))
         roi_right_416 = escalar_roi(roi_right_orig, frame_416.shape, (original_width, original_height))
+        roi_hinge_416 = escalar_roi(roi_hinge, frame_416.shape, (original_width, original_height))
         cv2.rectangle(frame_416_roi, (roi_left_416[0], roi_left_416[1]), (roi_left_416[0]+roi_left_416[2], roi_left_416[1]+roi_left_416[3]), (255,0,0), 2)
         cv2.rectangle(frame_416_roi, (roi_center_416[0], roi_center_416[1]), (roi_center_416[0]+roi_center_416[2], roi_center_416[1]+roi_center_416[3]), (0,255,0), 2)
         cv2.rectangle(frame_416_roi, (roi_right_416[0], roi_right_416[1]), (roi_right_416[0]+roi_right_416[2], roi_right_416[1]+roi_right_416[3]), (0,0,255), 2)
+        cv2.rectangle(frame_416_roi, (roi_hinge_416[0], roi_hinge_416[1]), (roi_hinge_416[0]+roi_hinge_416[2], roi_hinge_416[1]+roi_hinge_416[3]), (0,128,255), 2)
         img_416_roi_path = os.path.join(output_dir, filename.replace('.mp4', '_416_roi.jpg'))
         cv2.imwrite(img_416_roi_path, frame_416_roi)
 
