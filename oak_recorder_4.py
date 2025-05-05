@@ -1,4 +1,4 @@
-#  Graba archivo de 416x416 y lo analiza para contar personas en 3 ROIs
+#  Graba archivo de video y lo analiza para contar personas en 3 ROIs
 #  y fuera de ellas. Guarda estadísticas en CSV y elimina archivos viejos
 #  para mantener el uso del disco por debajo de 800 GB.
 #  Requiere la librería SORT para el seguimiento de objetos.
@@ -13,6 +13,8 @@ import blobconverter
 import logging
 import os
 from datetime import datetime, timedelta
+
+
 
 # Configuración del logging
 logging.basicConfig(
@@ -56,10 +58,11 @@ def esperar_hasta_proximo_multiplo(minuto_multiplo):
     time.sleep(espera)
 
 # --- Configuración de ROIs y pipeline ---
+# Configuración de ROIs (imagen original 1920x1080)
 roi_left_orig   = (100, 500, 350, 250)
 roi_center_orig = (880, 400, 130, 150)
 roi_right_orig  = (1200, 250, 350, 300)
-roi_hinge  = (1400, 380, 500, 200)
+roi_hinge_orig  = (1400, 380, 500, 200)
 original_width = 1920
 original_height = 1080
 
@@ -134,6 +137,7 @@ manip.out.link(xout_manip.input)
 detection_nn.out.link(xout_nn.input)
 stereo.depth.link(xout_depth.input)
 
+
 # --- Grabación segmentada ---
 MINUTO_MULTIPLO = 1  # Cambia este valor para grabar cada X minutos
 fps = 10
@@ -199,7 +203,7 @@ with dai.Device(pipeline) as device:
         roi_left = escalar_roi(roi_left_orig, frame_1080.shape, (original_width, original_height))
         roi_center = escalar_roi(roi_center_orig, frame_1080.shape, (original_width, original_height))
         roi_right = escalar_roi(roi_right_orig, frame_1080.shape, (original_width, original_height))
-        roi_hinge_1080 = escalar_roi(roi_hinge, frame_1080.shape, (original_width, original_height))
+        roi_hinge_1080 = escalar_roi(roi_hinge_orig, frame_1080.shape, (original_width, original_height))
         cv2.rectangle(frame_1080_roi, (roi_left[0], roi_left[1]), (roi_left[0]+roi_left[2], roi_left[1]+roi_left[3]), (255,0,0), 2)
         cv2.rectangle(frame_1080_roi, (roi_center[0], roi_center[1]), (roi_center[0]+roi_center[2], roi_center[1]+roi_center[3]), (0,255,0), 2)
         cv2.rectangle(frame_1080_roi, (roi_right[0], roi_right[1]), (roi_right[0]+roi_right[2], roi_right[1]+roi_right[3]), (0,0,255), 2)
@@ -212,7 +216,7 @@ with dai.Device(pipeline) as device:
         roi_left_416 = escalar_roi(roi_left_orig, frame_416.shape, (original_width, original_height))
         roi_center_416 = escalar_roi(roi_center_orig, frame_416.shape, (original_width, original_height))
         roi_right_416 = escalar_roi(roi_right_orig, frame_416.shape, (original_width, original_height))
-        roi_hinge_416 = escalar_roi(roi_hinge, frame_416.shape, (original_width, original_height))
+        roi_hinge_416 = escalar_roi(roi_hinge_orig, frame_416.shape, (original_width, original_height))
         cv2.rectangle(frame_416_roi, (roi_left_416[0], roi_left_416[1]), (roi_left_416[0]+roi_left_416[2], roi_left_416[1]+roi_left_416[3]), (255,0,0), 2)
         cv2.rectangle(frame_416_roi, (roi_center_416[0], roi_center_416[1]), (roi_center_416[0]+roi_center_416[2], roi_center_416[1]+roi_center_416[3]), (0,255,0), 2)
         cv2.rectangle(frame_416_roi, (roi_right_416[0], roi_right_416[1]), (roi_right_416[0]+roi_right_416[2], roi_right_416[1]+roi_right_416[3]), (0,0,255), 2)
@@ -268,7 +272,7 @@ with dai.Device(pipeline) as device:
                 last_frame_416 = current_frame_416
 
                 # --- Detección y estadísticas de personas y objeto_hinge ---
-                roi_hinge_scaled = escalar_roi(roi_hinge, current_frame_1080.shape, (original_width, original_height))
+                roi_hinge_scaled = escalar_roi(roi_hinge_orig, current_frame_1080.shape, (original_width, original_height))
                 roi_hinge_area = roi_hinge_scaled[2] * roi_hinge_scaled[3]
                 objeto_hinge_presente = False
 

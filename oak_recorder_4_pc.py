@@ -6,32 +6,32 @@ from datetime import datetime, timedelta
 import csv
 from ultralytics import YOLO
 from ultralytics.utils import LOGGER
+from sort.sort import Sort
 LOGGER.setLevel(logging.WARNING)
 
-# Configuración
+# Configuración lectura video
 VIDEO_PATH = r"C:\Planta101\rpi7\20250505\13\output_20250505_135200.mp4"
 print("¿Existe el video?", os.path.exists(VIDEO_PATH))
 OUTPUT_DIR = "./output"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# Configuración de ROIs (ajusta si tu video es 416x416)
+# Configuración de ROIs (imagen original 1920x1080)
 roi_left_orig   = (100, 500, 350, 250)
 roi_center_orig = (880, 400, 130, 150)
 roi_right_orig  = (1200, 250, 350, 300)
-roi_hinge       = (1400, 380, 500, 200)
+roi_hinge_orig  = (1400, 380, 500, 200)
 original_width = 1920
 original_height = 1080
 
-# Si tu video es 416x416, usa esto:
-# roi_left_orig   = (22, 192, 76, 96)
-# roi_center_orig = (190, 154, 28, 58)
-# roi_right_orig  = (260, 96, 76, 115)
-# roi_hinge       = (303, 146, 108, 77)
-# original_width = 416
-# original_height = 416
+tracker = Sort(max_age=30, min_hits=3, iou_threshold=0.3)
 
 # Cargar modelo YOLOv5 (puedes usar yolov5n, yolov5s, etc.)
 model = YOLO("yolov5n.pt")  # Descarga automática
+
+
+
+
+
 
 # CSV
 csv_path = os.path.join(OUTPUT_DIR, "person_stats.csv")
@@ -64,6 +64,8 @@ frames_per_segment = int(fps * segment_duration)
 
 segment_idx = 0
 frame_idx = 0
+
+
 
 while True:
     ret, frame = cap.read()
@@ -101,7 +103,7 @@ while True:
     roi_left = escalar_roi(roi_left_orig, frame.shape, (original_width, original_height))
     roi_center = escalar_roi(roi_center_orig, frame.shape, (original_width, original_height))
     roi_right = escalar_roi(roi_right_orig, frame.shape, (original_width, original_height))
-    roi_hinge_scaled = escalar_roi(roi_hinge, frame.shape, (original_width, original_height))
+    roi_hinge_scaled = escalar_roi(roi_hinge_orig, frame.shape, (original_width, original_height))
     roi_hinge_area = roi_hinge_scaled[2] * roi_hinge_scaled[3]
     objeto_hinge_presente = False
 
@@ -162,15 +164,8 @@ while True:
         print("Procesamiento interrumpido por el usuario.")
         break
 
-    # Guardar imágenes al final del segmento
     frames_in_segment += 1
     if (frame_idx + 1) % frames_per_segment == 0 or not ret:
-        # Guardar imagen original
-        img_original_path = os.path.join(img_dir, filename.replace('.mp4', f'_frame{frame_idx}_original.jpg'))
-        cv2.imwrite(img_original_path, frame)
-        # Guardar imagen con ROIs
-        img_roi_path = os.path.join(img_dir, filename.replace('.mp4', f'_frame{frame_idx}_roi.jpg'))
-        cv2.imwrite(img_roi_path, frame_roi)
 
         # Guardar CSV
         pct_left = 100 * roi_left_frames / frames_in_segment if frames_in_segment else 0
