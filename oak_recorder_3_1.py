@@ -215,6 +215,8 @@ with dai.Device(pipeline) as device:
         img_416_roi_path = os.path.join(output_dir, filename.replace('.mp4', '_416_roi.jpg'))
         cv2.imwrite(img_416_roi_path, frame_416_roi)
 
+        frame_height, frame_width = frame_1080.shape[:2]
+
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(filepath, fourcc, fps, (frame_width, frame_height))
 
