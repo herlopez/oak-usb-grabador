@@ -144,14 +144,14 @@ with dai.Device(pipeline) as device:
         output_dir = os.path.join(VIDEO_DIR, day_folder, hour_folder)
         os.makedirs(output_dir, exist_ok=True)
 
-        # CSV setup en la carpeta del día
+        # CSV setup en la carpeta del día (una sola fila por segmento)
         csv_path = os.path.join(VIDEO_DIR, day_folder, "person_stats.csv")
         new_csv = not os.path.exists(csv_path)
         csv_file = open(csv_path, "a", newline="")
         import csv
         csv_writer = csv.writer(csv_file)
         if new_csv:
-            csv_writer.writerow(["Timestamp", "%ROI_Left", "%ROI_Center", "%ROI_Right", "%Fuera_ROI", "Avg"])
+            csv_writer.writerow(["VideoFile", "Timestamp", "%ROI_Left", "%ROI_Center", "%ROI_Right", "%Fuera_ROI", "Avg"])
 
         filename = now.strftime(f"output_%Y%m%d_%H%M%S.mp4")
         filepath = os.path.join(output_dir, filename)
@@ -163,13 +163,8 @@ with dai.Device(pipeline) as device:
         print(f"Grabando: {filepath}")
         logging.info(f"Inicio de grabación: {filepath}")
 
-        intervalo = int(fps * 60)  # 1 minuto de estadísticas
-        frame_count = 0
-        personas_intervalo = set()
-        ultimo_reporte_texto = ""
-
-        # Estadísticas por minuto
-        frames_in_minute = 0
+        # Estadísticas acumuladas para el segmento
+        frames_in_segment = 0
         roi_left_frames = 0
         roi_center_frames = 0
         roi_right_frames = 0
@@ -245,11 +240,8 @@ with dai.Device(pipeline) as device:
                 cv2.rectangle(frame, (roi_center[0], roi_center[1]), (roi_center[0] + roi_center[2], roi_center[1] + roi_center[3]), (0, 255, 0), 2)
                 cv2.rectangle(frame, (roi_right[0], roi_right[1]), (roi_right[0] + roi_right[2], roi_right[1] + roi_right[3]), (0, 0, 255), 2)
 
-                personas_intervalo.update(ids_presentes)
-                frame_count += 1
-
-                # Estadísticas por minuto
-                frames_in_minute += 1
+                # Acumular estadísticas para el segmento
+                frames_in_segment += 1
                 person_counts.append(len(ids_presentes))
                 if roi_left_present:
                     roi_left_frames += 1
@@ -259,35 +251,6 @@ with dai.Device(pipeline) as device:
                     roi_right_frames += 1
                 if (len(ids_presentes) > 0) and not (roi_left_present or roi_center_present or roi_right_present):
                     out_roi_frames += 1
-
-                if frame_count >= intervalo:
-                    pct_left = 100 * roi_left_frames / frames_in_minute
-                    pct_center = 100 * roi_center_frames / frames_in_minute
-                    pct_right = 100 * roi_right_frames / frames_in_minute
-                    pct_out_roi = 100 * out_roi_frames / frames_in_minute
-
-                    avg_personas = int(np.ceil(np.mean(person_counts))) if person_counts else 0
-
-                    timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
-                    reporte = (f"{timestamp} | %ROI_Left: {pct_left:.1f} | %ROI_Center: {pct_center:.1f} | "
-                               f"%ROI_Right: {pct_right:.1f} | %Fuera_ROI: {pct_out_roi:.1f} | Ocupacion: {avg_personas}")
-                    print(reporte)
-                    csv_writer.writerow([timestamp, f"{pct_left:.1f}", f"{pct_center:.1f}", f"{pct_right:.1f}",
-                                         f"{pct_out_roi:.1f}", avg_personas])
-                    csv_file.flush()
-
-                    # Reset stats
-                    personas_intervalo.clear()
-                    frame_count = 0
-                    frames_in_minute = 0
-                    roi_left_frames = 0
-                    roi_center_frames = 0
-                    roi_right_frames = 0
-                    person_counts = []
-                    out_roi_frames = 0
-
-                if ultimo_reporte_texto:
-                    cv2.putText(frame, ultimo_reporte_texto, (30, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
 
                 out.write(frame)
 
@@ -309,6 +272,18 @@ with dai.Device(pipeline) as device:
             logging.error(f"Error durante la grabación: {e}")
         finally:
             out.release()
+            # Guardar resumen del segmento en el CSV del día
+            pct_left = 100 * roi_left_frames / frames_in_segment if frames_in_segment else 0
+            pct_center = 100 * roi_center_frames / frames_in_segment if frames_in_segment else 0
+            pct_right = 100 * roi_right_frames / frames_in_segment if frames_in_segment else 0
+            pct_out_roi = 100 * out_roi_frames / frames_in_segment if frames_in_segment else 0
+            avg_personas = int(np.ceil(np.mean(person_counts))) if person_counts else 0
+            timestamp = now.strftime('%Y-%m-%d %H:%M:%S')
+            csv_writer.writerow([
+                filename, timestamp,
+                f"{pct_left:.1f}", f"{pct_center:.1f}", f"{pct_right:.1f}", f"{pct_out_roi:.1f}", avg_personas
+            ])
+            csv_file.flush()
             csv_file.close()
 
     cv2.destroyAllWindows()
