@@ -143,9 +143,10 @@ with dai.Device(pipeline) as device:
     cam_queue = device.getOutputQueue("cam", maxSize=4, blocking=False)         # 1080p original
     detections_queue = device.getOutputQueue("detections", maxSize=4, blocking=False)
     manip_queue = device.getOutputQueue("manip", maxSize=4, blocking=False)     # 416x416
+    # Espera solo antes de iniciar la grabación
+    esperar_hasta_proximo_multiplo(MINUTO_MULTIPLO)
 
     while True:
-        esperar_hasta_proximo_multiplo(MINUTO_MULTIPLO)
         manage_disk_usage(VIDEO_DIR, MAX_USAGE_BYTES)
 
         now = datetime.now()
