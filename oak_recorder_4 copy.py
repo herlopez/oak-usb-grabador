@@ -52,6 +52,14 @@ def esperar_hasta_proximo_multiplo(minuto_multiplo):
     print(f"Esperando {espera:.2f} segundos hasta el próximo múltiplo de {minuto_multiplo} minutos...")
     time.sleep(espera)
 
+def escalar_roi(roi, shape, orig_shape):
+    return (
+        int(roi[0] * shape[1] / orig_shape[1]),
+        int(roi[1] * shape[0] / orig_shape[0]),
+        int(roi[2] * shape[1] / orig_shape[1]),
+        int(roi[3] * shape[0] / orig_shape[0])
+    )
+
 # --- Configuración de ROIs y pipeline ---
 roi_left_orig   = (100, 500, 350, 250)
 roi_center_orig = (880, 400, 130, 150)
@@ -181,13 +189,6 @@ with dai.Device(pipeline) as device:
         img_416_path = os.path.join(img_dir, filename.replace('.mp4', '_416.jpg'))
         cv2.imwrite(img_416_path, frame_416)
 
-        def escalar_roi(roi, shape, orig_shape):
-            return (
-                int(roi[0] * shape[1] / orig_shape[0]),
-                int(roi[1] * shape[0] / orig_shape[1]),
-                int(roi[2] * shape[1] / orig_shape[0]),
-                int(roi[3] * shape[0] / orig_shape[1])
-            )
 
         frame_height, frame_width = frame_1080.shape[:2]
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
