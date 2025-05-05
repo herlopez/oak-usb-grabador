@@ -150,7 +150,7 @@ with dai.Device(pipeline) as device:
         csv_writer = csv.writer(csv_file)
         if new_csv:
             csv_writer.writerow([
-                "Fecha", "Hora", "Minuto", "%ROI_Left", "%ROI_Center", "%ROI_Right", "%Fuera_ROI", "Personas", "VideoFile"
+                "Fecha", "Hora", "Minuto", "%ROI_Left", "%ROI_Center", "%ROI_Right", "%Fuera_ROI", "Personas", "VideoFile", "Script"
             ])
         filename = now.strftime(f"output_%Y%m%d_%H%M%S.mp4")
         filepath = os.path.join(output_dir, filename)
@@ -280,7 +280,7 @@ with dai.Device(pipeline) as device:
             csv_writer.writerow([
                 fecha, hora, minuto,
                 f"{pct_left:.1f}", f"{pct_center:.1f}", f"{pct_right:.1f}", f"{pct_out_roi:.1f}", avg_personas,
-                filename
+                filename, "oak_recorder_3.py"
             ])
             csv_file.flush()
             csv_file.close()
