@@ -156,16 +156,17 @@ while True:
             inter_w = max(0, inter_x2 - inter_x1)
             inter_h = max(0, inter_y2 - inter_y1)
             inter_area = inter_w * inter_h
-            if roi_hinge_area > 0 and (inter_area / roi_hinge_area) > 0.1:
-                # Chequea si el objeto entra desde la izquierda o arriba
-                entra_por_izquierda = (x1 < roi_hinge_scaled[0] + 10) and (inter_w > 0)
-                entra_por_arriba = (y1 < roi_hinge_scaled[1] + 10) and (inter_h > 0)
-                if entra_por_izquierda or entra_por_arriba:
-                    objeto_hinge_presente = True
+            objeto_hinge_presente = True
+            # if roi_hinge_area > 0 and (inter_area / roi_hinge_area) > 0.1:
+            #     # Chequea si el objeto entra desde la izquierda o arriba
+            #     entra_por_izquierda = (x1 < roi_hinge_scaled[0] + 10) and (inter_w > 0)
+            #     entra_por_arriba = (y1 < roi_hinge_scaled[1] + 10) and (inter_h > 0)
+            #     if entra_por_izquierda or entra_por_arriba:
+            #         objeto_hinge_presente = True
 
     if objeto_hinge_presente and not objeto_hinge_presente_anterior:
         objeto_hinge_count += 1
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] Event HINGE detected (Hinge in ROI, entrada por izq/arriba)")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Event HINGE detected! (ID: {objeto_hinge_count})")
 
     objeto_hinge_presente_anterior = objeto_hinge_presente
 
@@ -179,6 +180,7 @@ while True:
         roi_right_frames += 1
     if (person_count_this_frame > 0) and not (roi_left_present or roi_center_present or roi_right_present):
         out_roi_frames += 1
+
 
     # Visualizar el frame con ROIs en cada iteración
     cv2.rectangle(frame_roi, (roi_left[0], roi_left[1]), (roi_left[0]+roi_left[2], roi_left[1]+roi_left[3]), (255,0,0), 2)
