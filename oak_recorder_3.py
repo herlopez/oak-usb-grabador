@@ -49,7 +49,7 @@ def esperar_hasta_proximo_multiplo(minuto_multiplo):
     print(f"Esperando {espera:.2f} segundos hasta el próximo múltiplo de {minuto_multiplo} minutos...")
     time.sleep(espera)
 
-# --- Tu código de detección y pipeline ---
+# --- Configuración de ROIs y pipeline ---
 roi_left_orig   = (100, 500, 350, 250)
 roi_center_orig = (880, 400, 130, 150)
 roi_right_orig  = (1200, 300, 350, 250)
@@ -131,10 +131,15 @@ segment_duration = 60 * MINUTO_MULTIPLO
 with dai.Device(pipeline) as device:
     video_queue = device.getOutputQueue("video", maxSize=4, blocking=False)
     detections_queue = device.getOutputQueue("detections", maxSize=4, blocking=False)
-    depth_queue = device.getOutputQueue("depth", maxSize=4, blocking=False)
+    # depth_queue = device.getOutputQueue("depth", maxSize=4, blocking=False)  # No se usa para solo personas
 
-    # cv2.namedWindow('Detection', cv2.WINDOW_NORMAL)
-    # cv2.resizeWindow('Detection', 1280, 720)
+    # CSV setup
+    csv_path = os.path.join(VIDEO_DIR, day_folder, "person_stats.csv")
+    new_csv = not os.path.exists(csv_path)
+    csv_file = open(csv_path, "a", newline="")
+    import csv
+    csv_writer = csv.writer(csv_file)
+    csv_writer.writerow(["Timestamp", "%ROI_Left", "%ROI_Center", "%ROI_Right", "%Fuera_ROI", "Avg"])
 
     esperar_hasta_proximo_multiplo(MINUTO_MULTIPLO)
 
@@ -157,21 +162,24 @@ with dai.Device(pipeline) as device:
         print(f"Grabando: {filepath}")
         logging.info(f"Inicio de grabación: {filepath}")
 
-        intervalo = int(fps * 5)
+        intervalo = int(fps * 60)  # 1 minuto de estadísticas
         frame_count = 0
         personas_intervalo = set()
-        cajas_contador = {"Hinge Big": 0, "Hinge Small": 0, "Outside": 0}
         ultimo_reporte_texto = ""
+
+        # Estadísticas por minuto
+        frames_in_minute = 0
+        roi_left_frames = 0
+        roi_center_frames = 0
+        roi_right_frames = 0
+        person_counts = []
+        out_roi_frames = 0
 
         try:
             while True:
                 in_video = video_queue.get()
                 in_detections = detections_queue.get()
-                in_depth = depth_queue.get()
-
                 frame = in_video.getCvFrame()
-                depth_frame = in_depth.getFrame()
-                depth_normalized = cv2.normalize(depth_frame, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
 
                 scale_x = frame.shape[1] / original_width
                 scale_y = frame.shape[0] / original_height
@@ -188,7 +196,7 @@ with dai.Device(pipeline) as device:
                 roi_center = escalar_roi(roi_center_orig)
                 roi_right = escalar_roi(roi_right_orig)
 
-                # YOLO + SORT
+                # YOLO + SORT solo personas
                 detections = []
                 for detection in in_detections.detections:
                     if detection.label == 0:
@@ -202,21 +210,28 @@ with dai.Device(pipeline) as device:
                 tracks = tracker.update(np.array(detections)) if detections else []
 
                 ids_presentes = set()
+                roi_left_present = False
+                roi_center_present = False
+                roi_right_present = False
+
                 for track in tracks:
                     x1, y1, x2, y2, track_id = map(int, track)
                     ids_presentes.add(track_id)
                     cx = int((x1 + x2) / 2)
                     cy = int((y1 + y2) / 2)
 
-                    if roi_left[0] <= cx < roi_left[0] + roi_left[2]:
-                        roi_label = "Hinge Big"
+                    if roi_left[0] <= cx < roi_left[0] + roi_left[2] and roi_left[1] <= cy < roi_left[1] + roi_left[3]:
+                        roi_label = "Left"
                         color = (255, 0, 0)
-                    elif roi_center[0] <= cx < roi_center[0] + roi_center[2]:
-                        roi_label = "Hinge Small"
+                        roi_left_present = True
+                    elif roi_center[0] <= cx < roi_center[0] + roi_center[2] and roi_center[1] <= cy < roi_center[1] + roi_center[3]:
+                        roi_label = "Center"
                         color = (0, 255, 0)
-                    elif roi_right[0] <= cx < roi_right[0] + roi_right[2]:
-                        roi_label = "Outside"
+                        roi_center_present = True
+                    elif roi_right[0] <= cx < roi_right[0] + roi_right[2] and roi_right[1] <= cy < roi_right[1] + roi_right[3]:
+                        roi_label = "Right"
                         color = (0, 0, 255)
+                        roi_right_present = True
                     else:
                         roi_label = ""
                         color = (128, 128, 128)
@@ -224,66 +239,63 @@ with dai.Device(pipeline) as device:
                     cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
                     cv2.putText(frame, f'ID {track_id} {roi_label}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
 
-                # Detección de cajas por bordes + profundidad
-                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                edges = cv2.Canny(gray, 50, 150)
-                contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-                for cnt in contours:
-                    approx = cv2.approxPolyDP(cnt, 0.02 * cv2.arcLength(cnt, True), True)
-                    area = cv2.contourArea(cnt)
-
-                    if len(approx) == 4 and area > 4000:
-                        x, y, w, h = cv2.boundingRect(cnt)
-                        depth_roi = depth_normalized[y:y+h, x:x+w]
-                        avg_depth = np.mean(depth_roi)
-
-                        if 30 < avg_depth < 150:
-                            cx = x + w // 2
-                            cy = y + h // 2
-
-                            if roi_left[0] <= cx < roi_left[0] + roi_left[2]:
-                                roi_label = "Hinge Big"
-                                color = (255, 255, 0)
-                            elif roi_center[0] <= cx < roi_center[0] + roi_center[2]:
-                                roi_label = "Hinge Small"
-                                color = (0, 255, 255)
-                            elif roi_right[0] <= cx < roi_right[0] + roi_right[2]:
-                                roi_label = "Outside"
-                                color = (255, 0, 255)
-                            else:
-                                roi_label = ""
-                                color = (100, 100, 100)
-
-                            if roi_label:
-                                cajas_contador[roi_label] += 1
-
-                            cv2.rectangle(frame, (x, y), (x+w, y+h), color, 2)
-                            cv2.putText(frame, f"Caja {roi_label}", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
-
-                # Dibujar ROIs
-                for roi, color in zip([roi_left, roi_center, roi_right], [(255, 0, 0), (0, 255, 0), (0, 0, 255)]):
-                    cv2.rectangle(frame, (roi[0], roi[1]), (roi[0]+roi[2], roi[1]+roi[3]), color, 2)
+                # Dibujar los tres ROIs
+                cv2.rectangle(frame, (roi_left[0], roi_left[1]), (roi_left[0] + roi_left[2], roi_left[1] + roi_left[3]), (255, 0, 0), 2)
+                cv2.rectangle(frame, (roi_center[0], roi_center[1]), (roi_center[0] + roi_center[2], roi_center[1] + roi_center[3]), (0, 255, 0), 2)
+                cv2.rectangle(frame, (roi_right[0], roi_right[1]), (roi_right[0] + roi_right[2], roi_right[1] + roi_right[3]), (0, 0, 255), 2)
 
                 personas_intervalo.update(ids_presentes)
                 frame_count += 1
 
+                # Estadísticas por minuto
+                frames_in_minute += 1
+                person_counts.append(len(ids_presentes))
+                if roi_left_present:
+                    roi_left_frames += 1
+                if roi_center_present:
+                    roi_center_frames += 1
+                if roi_right_present:
+                    roi_right_frames += 1
+                if (len(ids_presentes) > 0) and not (roi_left_present or roi_center_present or roi_right_present):
+                    out_roi_frames += 1
+
                 if frame_count >= intervalo:
-                    ultimo_reporte_texto = f"{time.strftime('%H:%M:%S')} Personas: {len(personas_intervalo)} | Cajas: {cajas_contador}"
-                    print(ultimo_reporte_texto)
+                    pct_left = 100 * roi_left_frames / frames_in_minute
+                    pct_center = 100 * roi_center_frames / frames_in_minute
+                    pct_right = 100 * roi_right_frames / frames_in_minute
+                    pct_out_roi = 100 * out_roi_frames / frames_in_minute
+
+                    avg_personas = int(np.ceil(np.mean(person_counts))) if person_counts else 0
+
+                    timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
+                    reporte = (f"{timestamp} | %ROI_Left: {pct_left:.1f} | %ROI_Center: {pct_center:.1f} | "
+                               f"%ROI_Right: {pct_right:.1f} | %Fuera_ROI: {pct_out_roi:.1f} | Ocupacion: {avg_personas}")
+                    print(reporte)
+                    csv_writer.writerow([timestamp, f"{pct_left:.1f}", f"{pct_center:.1f}", f"{pct_right:.1f}",
+                                         f"{pct_out_roi:.1f}", avg_personas])
+                    csv_file.flush()
+
+                    # Reset stats
                     personas_intervalo.clear()
-                    cajas_contador = {k: 0 for k in cajas_contador}
                     frame_count = 0
+                    frames_in_minute = 0
+                    roi_left_frames = 0
+                    roi_center_frames = 0
+                    roi_right_frames = 0
+                    person_counts = []
+                    out_roi_frames = 0
 
                 if ultimo_reporte_texto:
                     cv2.putText(frame, ultimo_reporte_texto, (30, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
 
-                out.write(frame)  # <-- Graba el frame procesado
+                out.write(frame)
 
+                # Si tienes entorno gráfico, puedes mostrarlo:
                 # cv2.imshow('Detection', frame)
                 # key = cv2.waitKey(1) & 0xFF
                 # if key == ord('q'):
                 #     raise KeyboardInterrupt
+
                 if time.time() - start_time >= segment_duration:
                     print(f"Grabación de {MINUTO_MULTIPLO} minuto(s) completada.")
                     logging.info(f"Fin de grabación: {filepath}")
@@ -297,4 +309,5 @@ with dai.Device(pipeline) as device:
         finally:
             out.release()
 
+    csv_file.close()
     cv2.destroyAllWindows()
