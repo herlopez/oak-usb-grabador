@@ -28,11 +28,6 @@ tracker = Sort(max_age=30, min_hits=3, iou_threshold=0.3)
 # Cargar modelo YOLOv5 (puedes usar yolov5n, yolov5s, etc.)
 model = YOLO("yolov5n.pt")  # Descarga automática
 
-
-
-
-
-
 # CSV
 csv_path = os.path.join(OUTPUT_DIR, "person_stats.csv")
 new_csv = not os.path.exists(csv_path)
@@ -64,8 +59,6 @@ frames_per_segment = int(fps * segment_duration)
 
 segment_idx = 0
 frame_idx = 0
-
-
 
 while True:
     ret, frame = cap.read()
@@ -107,27 +100,54 @@ while True:
     roi_hinge_area = roi_hinge_scaled[2] * roi_hinge_scaled[3]
     objeto_hinge_presente = False
 
-    # --- Dibuja bounding boxes de personas sobre el frame ---
+    # --- Dibuja bounding boxes de personas con ID sobre el frame ---
     frame_roi = frame.copy()
+
+    # 1. Recolectar bounding boxes de personas para el tracker
+    person_boxes = []
     for box in detections:
         cls = int(box.cls[0])
-        x1, y1, x2, y2 = map(int, box.xyxy[0])
+        if cls == 0:
+            x1, y1, x2, y2 = map(int, box.xyxy[0])
+            conf = float(box.conf[0]) if hasattr(box, 'conf') else 1.0
+            person_boxes.append([x1, y1, x2, y2, conf])
+
+    # 2. Actualizar el tracker y obtener IDs
+    if person_boxes:
+        tracks = tracker.update(np.array(person_boxes))
+    else:
+        tracks = []
+
+    # 3. Dibujar bounding boxes y IDs
+    for track in tracks:
+        x1, y1, x2, y2, track_id = map(int, track[:5])
         cx = int((x1 + x2) // 2)
         cy = int((y1 + y2) // 2)
-        if cls == 0:
-            # Persona
-            person_count_this_frame += 1
-            # Dibuja el bounding box de la persona
-            cv2.rectangle(frame_roi, (x1, y1), (x2, y2), (0, 255, 255), 2)
-            cv2.putText(frame_roi, "Persona", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
-            if roi_left[0] <= cx < roi_left[0] + roi_left[2] and roi_left[1] <= cy < roi_left[1] + roi_left[3]:
-                roi_left_present = True
-            elif roi_center[0] <= cx < roi_center[0] + roi_center[2] and roi_center[1] <= cy < roi_center[1] + roi_center[3]:
-                roi_center_present = True
-            elif roi_right[0] <= cx < roi_right[0] + roi_right[2] and roi_right[1] <= cy < roi_right[1] + roi_right[3]:
-                roi_right_present = True
+        # Determinar color y ROI
+        if roi_left[0] <= cx < roi_left[0] + roi_left[2] and roi_left[1] <= cy < roi_left[1] + roi_left[3]:
+            color = (255, 0, 0)
+            roi_left_present = True
+            roi_label = f"ID:{track_id} Left"
+        elif roi_center[0] <= cx < roi_center[0] + roi_center[2] and roi_center[1] <= cy < roi_center[1] + roi_center[3]:
+            color = (0, 255, 0)
+            roi_center_present = True
+            roi_label = f"ID:{track_id} Center"
+        elif roi_right[0] <= cx < roi_right[0] + roi_right[2] and roi_right[1] <= cy < roi_right[1] + roi_right[3]:
+            color = (0, 0, 255)
+            roi_right_present = True
+            roi_label = f"ID:{track_id} Right"
         else:
-            # Objeto NO persona: cuenta para objeto_hinge
+            color = (0, 255, 255)
+            roi_label = f"ID:{track_id} Fuera ROI"
+        cv2.rectangle(frame_roi, (x1, y1), (x2, y2), color, 2)
+        cv2.putText(frame_roi, roi_label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+        person_count_this_frame += 1
+
+    # Detección de objetos no persona para hinge
+    for box in detections:
+        cls = int(box.cls[0])
+        if cls != 0:
+            x1, y1, x2, y2 = map(int, box.xyxy[0])
             inter_x1 = max(x1, roi_hinge_scaled[0])
             inter_y1 = max(y1, roi_hinge_scaled[1])
             inter_x2 = min(x2, roi_hinge_scaled[0] + roi_hinge_scaled[2])
@@ -140,7 +160,8 @@ while True:
 
     if objeto_hinge_presente and not objeto_hinge_presente_anterior:
         objeto_hinge_count += 1
-        # print(f"[{datetime.now().strftime('%H:%M:%S')}] Evento HINGE detectado (objeto no persona en ROI hinge)")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Event HINGE detected (Hinge in ROI)")
+
     objeto_hinge_presente_anterior = objeto_hinge_presente
 
     # Estadísticas de personas y ROIs
@@ -183,6 +204,12 @@ while True:
             f"{pct_left:.1f}", f"{pct_center:.1f}", f"{pct_right:.1f}", f"{pct_out_roi:.1f}", avg_personas,
             filename, "analisis_video_pc.py", objeto_hinge_count
         ])
+        print(
+            f"Fecha: {fecha}, Hora: {hora}, Minuto: {minuto}, "
+            f"%ROI_Left: {pct_left:.1f}, %ROI_Center: {pct_center:.1f}, %ROI_Right: {pct_right:.1f}, "
+            f"%Fuera_ROI: {pct_out_roi:.1f}, Personas: {avg_personas}, "
+            f"VideoFile: {filename}, Script: analisis_video_pc.py, objeto_hinge: {objeto_hinge_count}"
+        )
         csv_file.flush()
 
     frame_idx += 1

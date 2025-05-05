@@ -1,3 +1,7 @@
 Fecha,Hora,Minuto,%ROI_Left,%ROI_Center,%ROI_Right,%Fuera_ROI,Personas,VideoFile,Script,objeto_hinge
 2025-05-05,15,19,19.5,27.2,94.3,2.0,3,output_20250505_151943.mp4,analisis_video_pc.py,0
 2025-05-05,15,41,19.5,27.2,94.3,2.0,3,output_20250505_154143.mp4,analisis_video_pc.py,0
+2025-05-05,16,34,19.5,27.2,94.3,2.0,3,output_20250505_163406.mp4,analisis_video_pc.py,0
+2025-05-05,16,43,17.5,26.3,85.7,2.3,2,output_20250505_164333.mp4,analisis_video_pc.py,0
+2025-05-05,16,45,17.5,26.3,85.7,2.3,2,output_20250505_164517.mp4,analisis_video_pc.py,0
+2025-05-05,16,47,17.5,26.3,85.7,2.3,2,output_20250505_164733.mp4,analisis_video_pc.py,0

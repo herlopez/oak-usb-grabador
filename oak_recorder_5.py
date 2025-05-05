@@ -57,6 +57,15 @@ def esperar_hasta_proximo_multiplo(minuto_multiplo):
     print(f"Esperando {espera:.2f} segundos hasta el próximo múltiplo de {minuto_multiplo} minutos...")
     time.sleep(espera)
 
+# Función para escalar ROIs
+def escalar_roi(roi, shape, orig_shape):
+    return (
+        int(roi[0] * shape[1] / orig_shape[0]),
+        int(roi[1] * shape[0] / orig_shape[1]),
+        int(roi[2] * shape[1] / orig_shape[0]),
+        int(roi[3] * shape[0] / orig_shape[1])
+    )
+
 # --- Configuración de ROIs y pipeline ---
 # Configuración de ROIs (imagen original 1920x1080)
 roi_left_orig   = (100, 500, 350, 250)
@@ -189,14 +198,6 @@ with dai.Device(pipeline) as device:
         img_416_path = os.path.join(img_dir, filename.replace('.mp4', '_416.jpg'))
         cv2.imwrite(img_416_path, frame_416)
 
-        # Función para escalar ROIs
-        def escalar_roi(roi, shape, orig_shape):
-            return (
-                int(roi[0] * shape[1] / orig_shape[0]),
-                int(roi[1] * shape[0] / orig_shape[1]),
-                int(roi[2] * shape[1] / orig_shape[0]),
-                int(roi[3] * shape[0] / orig_shape[1])
-            )
 
         # 1080p con ROIs
         frame_1080_roi = frame_1080.copy()
@@ -312,7 +313,7 @@ with dai.Device(pipeline) as device:
 
                 if objeto_hinge_presente and not objeto_hinge_presente_anterior:
                     objeto_hinge_count += 1
-                    print(f"[{datetime.now().strftime('%H:%M:%S')}] Event HINGE detected (Hinge in ROI)")
+                    # print(f"[{datetime.now().strftime('%H:%M:%S')}] Evento HINGE detectado (objeto no persona en ROI hinge)")
                 objeto_hinge_presente_anterior = objeto_hinge_presente
 
                 # Estadísticas de personas y ROIs
