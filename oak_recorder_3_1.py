@@ -1,4 +1,4 @@
-#  Graba archivo de 416x416 y lo analiza para contar personas en 3 ROIs
+#  Graba archivo de 416x416 con deteccion de profundida y lo analiza para contar personas en 3 ROIs
 #  y fuera de ellas. Guarda estadísticas en CSV y elimina archivos viejos
 #  para mantener el uso del disco por debajo de 800 GB.
 #  Requiere la librería SORT para el seguimiento de objetos.
@@ -78,6 +78,7 @@ cam_rgb.setInterleaved(False)
 cam_rgb.setFps(10)
 cam_rgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
 
+# Para la red neuronal (416x416)
 manip = pipeline.createImageManip()
 manip.initialConfig.setResize(416, 416)
 manip.initialConfig.setKeepAspectRatio(False)
@@ -85,6 +86,7 @@ manip.initialConfig.setFrameType(dai.ImgFrame.Type.BGR888p)
 manip.setMaxOutputFrameSize(416 * 416 * 3)
 cam_rgb.video.link(manip.inputImage)
 
+# Para profundidad
 mono_left = pipeline.createMonoCamera()
 mono_right = pipeline.createMonoCamera()
 stereo = pipeline.createStereoDepth()
@@ -116,15 +118,19 @@ detection_nn.setAnchorMasks({
 
 manip.out.link(detection_nn.input)
 
-xout_rgb = pipeline.createXLinkOut()
-xout_nn = pipeline.createXLinkOut()
-xout_depth = pipeline.createXLinkOut()
-xout_rgb.setStreamName("video")
-xout_nn.setStreamName("detections")
-xout_depth.setStreamName("depth")
+# Salida de video original (1920x1080)
+xout_video = pipeline.createXLinkOut()
+xout_video.setStreamName("video")
+cam_rgb.video.link(xout_video.input)
 
-manip.out.link(xout_rgb.input)
+# Salida de detecciones
+xout_nn = pipeline.createXLinkOut()
+xout_nn.setStreamName("detections")
 detection_nn.out.link(xout_nn.input)
+
+# Salida de profundidad (opcional, para futuro uso 3D)
+xout_depth = pipeline.createXLinkOut()
+xout_depth.setStreamName("depth")
 stereo.depth.link(xout_depth.input)
 
 # --- Grabación segmentada ---
@@ -133,9 +139,9 @@ fps = 10
 segment_duration = 60 * MINUTO_MULTIPLO
 
 with dai.Device(pipeline) as device:
-    video_queue = device.getOutputQueue("video", maxSize=4, blocking=False)
+    video_queue = device.getOutputQueue("video", maxSize=4, blocking=False)         # 1920x1080
     detections_queue = device.getOutputQueue("detections", maxSize=4, blocking=False)
-    # depth_queue = device.getOutputQueue("depth", maxSize=4, blocking=False)  # No se usa para solo personas
+    # depth_queue = device.getOutputQueue("depth", maxSize=4, blocking=False)  # Para futuro uso 3D
 
     esperar_hasta_proximo_multiplo(MINUTO_MULTIPLO)
 
@@ -166,29 +172,6 @@ with dai.Device(pipeline) as device:
         in_detections = detections_queue.get()
         frame = in_video.getCvFrame()
         frame_height, frame_width = frame.shape[:2]
-
-        # Guardar imagen original
-        img_original_path = os.path.join(output_dir, filename.replace('.mp4', '_original.jpg'))
-        cv2.imwrite(img_original_path, frame)
-
-        # Dibujar ROIs en copia del frame
-        frame_roi = frame.copy()
-        def escalar_roi(roi):
-            return (
-                int(roi[0] * frame.shape[1] / original_width),
-                int(roi[1] * frame.shape[0] / original_height),
-                int(roi[2] * frame.shape[1] / original_width),
-                int(roi[3] * frame.shape[0] / original_height)
-            )
-        roi_left = escalar_roi(roi_left_orig)
-        roi_center = escalar_roi(roi_center_orig)
-        roi_right = escalar_roi(roi_right_orig)
-        cv2.rectangle(frame_roi, (roi_left[0], roi_left[1]), (roi_left[0]+roi_left[2], roi_left[1]+roi_left[3]), (255,0,0), 2)
-        cv2.rectangle(frame_roi, (roi_center[0], roi_center[1]), (roi_center[0]+roi_center[2], roi_center[1]+roi_center[3]), (0,255,0), 2)
-        cv2.rectangle(frame_roi, (roi_right[0], roi_right[1]), (roi_right[0]+roi_right[2], roi_right[1]+roi_right[3]), (0,0,255), 2)
-        # Guardar imagen con ROIs
-        img_roi_path = os.path.join(output_dir, filename.replace('.mp4', '_roi.jpg'))
-        cv2.imwrite(img_roi_path, frame_roi)
 
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(filepath, fourcc, fps, (frame_width, frame_height))

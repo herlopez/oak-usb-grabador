@@ -4,6 +4,8 @@
 #  Requiere la librería SORT para el seguimiento de objetos.
 #  Se recomienda usar un SSD NVMe para evitar problemas de escritura.
 
+
+
 import depthai as dai
 import cv2
 import numpy as np
@@ -166,29 +168,6 @@ with dai.Device(pipeline) as device:
         in_detections = detections_queue.get()
         frame = in_video.getCvFrame()
         frame_height, frame_width = frame.shape[:2]
-
-        # Guardar imagen original
-        img_original_path = os.path.join(output_dir, filename.replace('.mp4', '_original.jpg'))
-        cv2.imwrite(img_original_path, frame)
-
-        # Dibujar ROIs en copia del frame
-        frame_roi = frame.copy()
-        def escalar_roi(roi):
-            return (
-                int(roi[0] * frame.shape[1] / original_width),
-                int(roi[1] * frame.shape[0] / original_height),
-                int(roi[2] * frame.shape[1] / original_width),
-                int(roi[3] * frame.shape[0] / original_height)
-            )
-        roi_left = escalar_roi(roi_left_orig)
-        roi_center = escalar_roi(roi_center_orig)
-        roi_right = escalar_roi(roi_right_orig)
-        cv2.rectangle(frame_roi, (roi_left[0], roi_left[1]), (roi_left[0]+roi_left[2], roi_left[1]+roi_left[3]), (255,0,0), 2)
-        cv2.rectangle(frame_roi, (roi_center[0], roi_center[1]), (roi_center[0]+roi_center[2], roi_center[1]+roi_center[3]), (0,255,0), 2)
-        cv2.rectangle(frame_roi, (roi_right[0], roi_right[1]), (roi_right[0]+roi_right[2], roi_right[1]+roi_right[3]), (0,0,255), 2)
-        # Guardar imagen con ROIs
-        img_roi_path = os.path.join(output_dir, filename.replace('.mp4', '_roi.jpg'))
-        cv2.imwrite(img_roi_path, frame_roi)
 
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(filepath, fourcc, fps, (frame_width, frame_height))
