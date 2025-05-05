@@ -61,12 +61,12 @@ def esperar_hasta_proximo_multiplo(minuto_multiplo):
 # Función para escalar ROIs
 def escalar_roi(roi, shape, orig_shape):
     return (
-        int(roi[0] * shape[1] / orig_shape[1]),
-        int(roi[1] * shape[0] / orig_shape[0]),
-        int(roi[2] * shape[1] / orig_shape[1]),
-        int(roi[3] * shape[0] / orig_shape[0])
+        int(roi[0] * shape[1] / orig_shape[0]),  # x
+        int(roi[1] * shape[0] / orig_shape[1]),  # y
+        int(roi[2] * shape[1] / orig_shape[0]),  # w
+        int(roi[3] * shape[0] / orig_shape[1])   # h
     )
-    
+
 # --- Configuración de ROIs y pipeline ---
 # Configuración de ROIs (imagen original 1920x1080)
 roi_left_orig   = (100, 500, 350, 250)

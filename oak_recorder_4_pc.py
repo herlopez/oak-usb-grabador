@@ -10,7 +10,7 @@ from sort.sort import Sort
 LOGGER.setLevel(logging.WARNING)
 
 # Configuración lectura video
-VIDEO_PATH = r"C:\Planta101\rpi7\20250505\13\output_20250505_135200.mp4"
+VIDEO_PATH = r"C:\Planta101\rpi7\20250505\13\output_20250505_133800.mp4"
 print("¿Existe el video?", os.path.exists(VIDEO_PATH))
 OUTPUT_DIR = "./output"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -41,10 +41,10 @@ if new_csv:
 # Función para escalar ROIs
 def escalar_roi(roi, shape, orig_shape):
     return (
-        int(roi[0] * shape[1] / orig_shape[1]),
-        int(roi[1] * shape[0] / orig_shape[0]),
-        int(roi[2] * shape[1] / orig_shape[1]),
-        int(roi[3] * shape[0] / orig_shape[0])
+        int(roi[0] * shape[1] / orig_shape[0]),  # x
+        int(roi[1] * shape[0] / orig_shape[1]),  # y
+        int(roi[2] * shape[1] / orig_shape[0]),  # w
+        int(roi[3] * shape[0] / orig_shape[1])   # h
     )
 
 # Procesamiento de video
@@ -123,22 +123,23 @@ while True:
         x1, y1, x2, y2, track_id = map(int, track[:5])
         cx = int((x1 + x2) // 2)
         cy = int((y1 + y2) // 2)
+        depth_value = 0  # Placeholder para el valor de profundidad (puedes reemplazarlo con un valor real si lo tienes)
         # Determinar color y ROI
         if roi_left[0] <= cx < roi_left[0] + roi_left[2] and roi_left[1] <= cy < roi_left[1] + roi_left[3]:
             color = (255, 0, 0)
             roi_left_present = True
-            roi_label = f"ID:{track_id} Left"
+            roi_label = f"ID:{track_id} {depth_value} Left"
         elif roi_center[0] <= cx < roi_center[0] + roi_center[2] and roi_center[1] <= cy < roi_center[1] + roi_center[3]:
             color = (0, 255, 0)
             roi_center_present = True
-            roi_label = f"ID:{track_id} Center"
+            roi_label = f"ID:{track_id} {depth_value} Center"
         elif roi_right[0] <= cx < roi_right[0] + roi_right[2] and roi_right[1] <= cy < roi_right[1] + roi_right[3]:
             color = (0, 0, 255)
             roi_right_present = True
-            roi_label = f"ID:{track_id} Right"
+            roi_label = f"ID:{track_id} {depth_value} Right"
         else:
             color = (0, 255, 255)
-            roi_label = f"ID:{track_id} Fuera ROI"
+            roi_label = f"ID:{track_id} {depth_value} Fuera ROI"
         cv2.rectangle(frame_roi, (x1, y1), (x2, y2), color, 2)
         cv2.putText(frame_roi, roi_label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
         person_count_this_frame += 1
