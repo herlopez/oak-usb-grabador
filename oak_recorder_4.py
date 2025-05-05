@@ -175,11 +175,13 @@ with dai.Device(pipeline) as device:
         frame_416 = in_manip.getCvFrame()   # 416x416 del manip
 
         # Guardar imagen original 1080p
-        img_original_path = os.path.join(output_dir, filename.replace('.mp4', '_original.jpg'))
+        img_dir = os.path.join(output_dir, "img")
+        os.makedirs(img_dir, exist_ok=True)
+        img_original_path = os.path.join(img_dir, filename.replace('.mp4', '_1080p.jpg'))
         cv2.imwrite(img_original_path, frame_1080)
 
         # Guardar imagen original 416x416
-        img_416_path = os.path.join(output_dir, filename.replace('.mp4', '_416.jpg'))
+        img_416_path = os.path.join(img_dir, filename.replace('.mp4', '_416.jpg'))
         cv2.imwrite(img_416_path, frame_416)
 
         # Función para escalar ROIs
@@ -201,7 +203,7 @@ with dai.Device(pipeline) as device:
         cv2.rectangle(frame_1080_roi, (roi_center[0], roi_center[1]), (roi_center[0]+roi_center[2], roi_center[1]+roi_center[3]), (0,255,0), 2)
         cv2.rectangle(frame_1080_roi, (roi_right[0], roi_right[1]), (roi_right[0]+roi_right[2], roi_right[1]+roi_right[3]), (0,0,255), 2)
         cv2.rectangle(frame_1080_roi, (roi_hinge_1080[0], roi_hinge_1080[1]), (roi_hinge_1080[0]+roi_hinge_1080[2], roi_hinge_1080[1]+roi_hinge_1080[3]), (0,128,255), 2)
-        img_1080_roi_path = os.path.join(output_dir, filename.replace('.mp4', '_roi.jpg'))
+        img_1080_roi_path = os.path.join(img_dir, filename.replace('.mp4', '_1080p_roi.jpg'))
         cv2.imwrite(img_1080_roi_path, frame_1080_roi)
 
         # 416x416 con ROIs
@@ -214,7 +216,7 @@ with dai.Device(pipeline) as device:
         cv2.rectangle(frame_416_roi, (roi_center_416[0], roi_center_416[1]), (roi_center_416[0]+roi_center_416[2], roi_center_416[1]+roi_center_416[3]), (0,255,0), 2)
         cv2.rectangle(frame_416_roi, (roi_right_416[0], roi_right_416[1]), (roi_right_416[0]+roi_right_416[2], roi_right_416[1]+roi_right_416[3]), (0,0,255), 2)
         cv2.rectangle(frame_416_roi, (roi_hinge_416[0], roi_hinge_416[1]), (roi_hinge_416[0]+roi_hinge_416[2], roi_hinge_416[1]+roi_hinge_416[3]), (0,128,255), 2)
-        img_416_roi_path = os.path.join(output_dir, filename.replace('.mp4', '_416_roi.jpg'))
+        img_416_roi_path = os.path.join(img_dir, filename.replace('.mp4', '_416_roi.jpg'))
         cv2.imwrite(img_416_roi_path, frame_416_roi)
 
         frame_height, frame_width = frame_1080.shape[:2]
@@ -307,10 +309,10 @@ with dai.Device(pipeline) as device:
             out.release()
             # Guardar imagen final de cada stream
             if last_frame_1080 is not None:
-                img_final_1080 = os.path.join(output_dir, filename.replace('.mp4', '_final_1080.jpg'))
+                img_final_1080 = os.path.join(img_dir, filename.replace('.mp4', '_1080p_last.jpg'))
                 cv2.imwrite(img_final_1080, last_frame_1080)
             if last_frame_416 is not None:
-                img_final_416 = os.path.join(output_dir, filename.replace('.mp4', '_final_416.jpg'))
+                img_final_416 = os.path.join(img_dir, filename.replace('.mp4', '_416_last.jpg'))
                 cv2.imwrite(img_final_416, last_frame_416)
             # Guardar resumen del segmento en el CSV del día
             pct_left = 100 * roi_left_frames / frames_in_segment if frames_in_segment else 0
