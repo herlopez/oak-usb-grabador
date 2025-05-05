@@ -358,6 +358,11 @@ with dai.Device(pipeline) as device:
                 f"{pct_left:.1f}", f"{pct_center:.1f}", f"{pct_right:.1f}", f"{pct_out_roi:.1f}", avg_personas,
                 filename, "oak_recorder_4.py", objeto_hinge_count
             ])
+            print(
+                f"%ROI_Left={pct_left:.1f} %ROI_Center={pct_center:.1f} %ROI_Right={pct_right:.1f} "
+                f"%Fuera_ROI={pct_out_roi:.1f} Personas={avg_personas} "
+                f"VideoFile={filename} objeto_hinge={objeto_hinge_count}"
+            )
             csv_file.flush()
             csv_file.close()
 
