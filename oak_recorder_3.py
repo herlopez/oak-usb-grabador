@@ -1,3 +1,11 @@
+#  Graba archivo de 416x416 y lo analiza para contar personas en 3 ROIs
+#  y fuera de ellas. Guarda estadísticas en CSV y elimina archivos viejos
+#  para mantener el uso del disco por debajo de 800 GB.
+#  Requiere la librería SORT para el seguimiento de objetos.
+#  Se recomienda usar un SSD NVMe para evitar problemas de escritura.
+
+
+
 import depthai as dai
 import cv2
 import numpy as np
