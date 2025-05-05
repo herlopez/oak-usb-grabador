@@ -59,7 +59,7 @@ def esperar_hasta_proximo_multiplo(minuto_multiplo):
 roi_left_orig   = (100, 500, 350, 250)
 roi_center_orig = (880, 400, 130, 150)
 roi_right_orig  = (1200, 250, 350, 300)
-roi_hinge  = (1400, 400, 416, 416)
+roi_hinge  = (1400, 380, 500, 200)
 original_width = 1920
 original_height = 1080
 
