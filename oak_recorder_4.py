@@ -242,7 +242,8 @@ with dai.Device(pipeline) as device:
         person_counts = []
         out_roi_frames = 0
         objeto_hinge_count = 0  # <--- contador de eventos hinge
-
+        objeto_hinge_presente_anterior = False
+        
         # Para guardar el último frame de cada stream
         last_frame_1080 = None
         last_frame_416 = None
@@ -265,12 +266,14 @@ with dai.Device(pipeline) as device:
                 last_frame_1080 = current_frame_1080
                 last_frame_416 = current_frame_416
 
-                # --- Evento objeto_hinge ---
+                # --- Evento objeto_hinge (solo objetos que NO sean persona, y solo cuenta una vez por evento) ---
                 roi_hinge_scaled = escalar_roi(roi_hinge, current_frame_1080.shape, (original_width, original_height))
                 roi_hinge_area = roi_hinge_scaled[2] * roi_hinge_scaled[3]
-                objeto_hinge_event = False
+                objeto_hinge_presente = False
 
                 for detection in current_detections.detections:
+                    if detection.label == 0:
+                        continue  # Ignora personas
                     x1 = int(detection.xmin * current_frame_1080.shape[1])
                     y1 = int(detection.ymin * current_frame_1080.shape[0])
                     x2 = int(detection.xmax * current_frame_1080.shape[1])
@@ -284,11 +287,12 @@ with dai.Device(pipeline) as device:
                     inter_h = max(0, inter_y2 - inter_y1)
                     inter_area = inter_w * inter_h
                     if roi_hinge_area > 0 and (inter_area / roi_hinge_area) > 0.4:
-                        objeto_hinge_event = True
+                        objeto_hinge_presente = True
                         break
 
-                if objeto_hinge_event:
+                if objeto_hinge_presente and not objeto_hinge_presente_anterior:
                     objeto_hinge_count += 1
+                objeto_hinge_presente_anterior = objeto_hinge_presente
 
                 # ... (resto del procesamiento, detección, estadísticas, etc.) ...
                 out.write(current_frame_1080)
