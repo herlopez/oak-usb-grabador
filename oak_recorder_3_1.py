@@ -79,6 +79,12 @@ cam_rgb.setInterleaved(False)
 cam_rgb.setFps(10)
 cam_rgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
 
+# XLinkOut para la imagen original de la cámara (1080p)
+xout_cam = pipeline.createXLinkOut()
+xout_cam.setStreamName("cam")
+cam_rgb.video.link(xout_cam.input)
+
+# Nodo manip para 416x416
 manip = pipeline.createImageManip()
 manip.initialConfig.setResize(416, 416)
 manip.initialConfig.setKeepAspectRatio(False)
@@ -117,16 +123,13 @@ detection_nn.setAnchorMasks({
 
 manip.out.link(detection_nn.input)
 
-xout_rgb = pipeline.createXLinkOut()
 xout_nn = pipeline.createXLinkOut()
 xout_depth = pipeline.createXLinkOut()
 xout_manip = pipeline.createXLinkOut()  # Para obtener el frame 416x416
-xout_rgb.setStreamName("video")
 xout_nn.setStreamName("detections")
 xout_depth.setStreamName("depth")
 xout_manip.setStreamName("manip")
 
-manip.out.link(xout_rgb.input)
 manip.out.link(xout_manip.input)
 detection_nn.out.link(xout_nn.input)
 stereo.depth.link(xout_depth.input)
@@ -137,9 +140,9 @@ fps = 10
 segment_duration = 60 * MINUTO_MULTIPLO
 
 with dai.Device(pipeline) as device:
-    video_queue = device.getOutputQueue("video", maxSize=4, blocking=False)
+    cam_queue = device.getOutputQueue("cam", maxSize=4, blocking=False)         # 1080p original
     detections_queue = device.getOutputQueue("detections", maxSize=4, blocking=False)
-    manip_queue = device.getOutputQueue("manip", maxSize=4, blocking=False)
+    manip_queue = device.getOutputQueue("manip", maxSize=4, blocking=False)     # 416x416
     # depth_queue = device.getOutputQueue("depth", maxSize=4, blocking=False)  # No se usa para solo personas
 
     while True:
@@ -166,10 +169,10 @@ with dai.Device(pipeline) as device:
         filepath = os.path.join(output_dir, filename)
 
         # Espera el primer frame para obtener el tamaño real
-        in_video = video_queue.get()
+        in_cam = cam_queue.get()
         in_detections = detections_queue.get()
         in_manip = manip_queue.get()
-        frame_1080 = in_video.getCvFrame()  # 1080p del stream original
+        frame_1080 = in_cam.getCvFrame()    # 1080p del stream original
         frame_416 = in_manip.getCvFrame()   # 416x416 del manip
 
         # Guardar imagen original 1080p
@@ -249,10 +252,10 @@ with dai.Device(pipeline) as device:
                     current_detections = in_detections
                     current_frame_416 = frame_416
                 else:
-                    in_video = video_queue.get()
+                    in_cam = cam_queue.get()
                     in_detections = detections_queue.get()
                     in_manip = manip_queue.get()
-                    current_frame_1080 = in_video.getCvFrame()
+                    current_frame_1080 = in_cam.getCvFrame()
                     current_detections = in_detections
                     current_frame_416 = in_manip.getCvFrame()
 
