@@ -124,8 +124,6 @@ stereo.depth.link(xout_depth.input)
 # --- Grabación segmentada ---
 MINUTO_MULTIPLO = 1  # Cambia este valor para grabar cada X minutos
 fps = 10
-frame_width = 1920
-frame_height = 1080
 segment_duration = 60 * MINUTO_MULTIPLO
 
 with dai.Device(pipeline) as device:
@@ -156,8 +154,20 @@ with dai.Device(pipeline) as device:
         filename = now.strftime(f"output_%Y%m%d_%H%M%S.mp4")
         filepath = os.path.join(output_dir, filename)
 
+        # Espera el primer frame para obtener el tamaño real
+        in_video = video_queue.get()
+        in_detections = detections_queue.get()
+        frame = in_video.getCvFrame()
+        frame_height, frame_width = frame.shape[:2]
+
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(filepath, fourcc, fps, (frame_width, frame_height))
+
+        if not out.isOpened():
+            print(f"Error: No se pudo abrir el archivo de video para escritura: {filepath}")
+            logging.error(f"No se pudo abrir el archivo de video para escritura: {filepath}")
+            csv_file.close()
+            continue  # Salta este segmento
 
         start_time = time.time()
         print(f"Grabando: {filepath}")
@@ -173,12 +183,18 @@ with dai.Device(pipeline) as device:
 
         try:
             while True:
-                in_video = video_queue.get()
-                in_detections = detections_queue.get()
-                frame = in_video.getCvFrame()
+                # Usa el primer frame leído antes del bucle
+                if frames_in_segment == 0:
+                    current_frame = frame
+                    current_detections = in_detections
+                else:
+                    in_video = video_queue.get()
+                    in_detections = detections_queue.get()
+                    current_frame = in_video.getCvFrame()
+                    current_detections = in_detections
 
-                scale_x = frame.shape[1] / original_width
-                scale_y = frame.shape[0] / original_height
+                scale_x = current_frame.shape[1] / original_width
+                scale_y = current_frame.shape[0] / original_height
 
                 def escalar_roi(roi):
                     return (
@@ -194,12 +210,12 @@ with dai.Device(pipeline) as device:
 
                 # YOLO + SORT solo personas
                 detections = []
-                for detection in in_detections.detections:
+                for detection in current_detections.detections:
                     if detection.label == 0:
-                        x1 = int(detection.xmin * frame.shape[1])
-                        y1 = int(detection.ymin * frame.shape[0])
-                        x2 = int(detection.xmax * frame.shape[1])
-                        y2 = int(detection.ymax * frame.shape[0])
+                        x1 = int(detection.xmin * current_frame.shape[1])
+                        y1 = int(detection.ymin * current_frame.shape[0])
+                        x2 = int(detection.xmax * current_frame.shape[1])
+                        y2 = int(detection.ymax * current_frame.shape[0])
                         conf = detection.confidence
                         detections.append([x1, y1, x2, y2, conf])
 
@@ -217,28 +233,11 @@ with dai.Device(pipeline) as device:
                     cy = int((y1 + y2) / 2)
 
                     if roi_left[0] <= cx < roi_left[0] + roi_left[2] and roi_left[1] <= cy < roi_left[1] + roi_left[3]:
-                        roi_label = "Left"
-                        color = (255, 0, 0)
                         roi_left_present = True
                     elif roi_center[0] <= cx < roi_center[0] + roi_center[2] and roi_center[1] <= cy < roi_center[1] + roi_center[3]:
-                        roi_label = "Center"
-                        color = (0, 255, 0)
                         roi_center_present = True
                     elif roi_right[0] <= cx < roi_right[0] + roi_right[2] and roi_right[1] <= cy < roi_right[1] + roi_right[3]:
-                        roi_label = "Right"
-                        color = (0, 0, 255)
                         roi_right_present = True
-                    else:
-                        roi_label = ""
-                        color = (128, 128, 128)
-
-                    cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-                    cv2.putText(frame, f'ID {track_id} {roi_label}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
-
-                # Dibujar los tres ROIs
-                cv2.rectangle(frame, (roi_left[0], roi_left[1]), (roi_left[0] + roi_left[2], roi_left[1] + roi_left[3]), (255, 0, 0), 2)
-                cv2.rectangle(frame, (roi_center[0], roi_center[1]), (roi_center[0] + roi_center[2], roi_center[1] + roi_center[3]), (0, 255, 0), 2)
-                cv2.rectangle(frame, (roi_right[0], roi_right[1]), (roi_right[0] + roi_right[2], roi_right[1] + roi_right[3]), (0, 0, 255), 2)
 
                 # Acumular estadísticas para el segmento
                 frames_in_segment += 1
@@ -252,13 +251,7 @@ with dai.Device(pipeline) as device:
                 if (len(ids_presentes) > 0) and not (roi_left_present or roi_center_present or roi_right_present):
                     out_roi_frames += 1
 
-                out.write(frame)
-
-                # Si tienes entorno gráfico, puedes mostrarlo:
-                # cv2.imshow('Detection', frame)
-                # key = cv2.waitKey(1) & 0xFF
-                # if key == ord('q'):
-                #     raise KeyboardInterrupt
+                out.write(current_frame)
 
                 if time.time() - start_time >= segment_duration:
                     print(f"Grabación de {MINUTO_MULTIPLO} minuto(s) completada.")
