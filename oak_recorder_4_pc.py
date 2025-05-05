@@ -7,6 +7,8 @@ import csv
 from ultralytics import YOLO
 from ultralytics.utils import LOGGER
 from sort.sort import Sort
+from collections import deque
+import time
 LOGGER.setLevel(logging.WARNING)
 
 # Configuración lectura video
@@ -60,6 +62,7 @@ frames_per_segment = int(fps * segment_duration)
 segment_idx = 0
 frame_idx = 0
 objeto_hinge_presente_anterior = False
+hinge_detection_times = deque(maxlen=20)  # Guarda los últimos timestamps de detección
 
 while True:
     ret, frame = cap.read()
@@ -159,7 +162,7 @@ while True:
                 hinge_bbox = (x1, y1, x2, y2)  # <-- Guarda el bbox
 
     # --- Detección del hinge por figura y contraste ---
-    HINGE_BRIGHTNESS_THRESHOLD = 180
+    HINGE_BRIGHTNESS_THRESHOLD = 150
     hinge_roi = frame[roi_hinge_scaled[1]:roi_hinge_scaled[1]+roi_hinge_scaled[3],
                     roi_hinge_scaled[0]:roi_hinge_scaled[0]+roi_hinge_scaled[2]]
     hinge_gray = cv2.cvtColor(hinge_roi, cv2.COLOR_BGR2GRAY)
@@ -168,13 +171,13 @@ while True:
     hinge_detected_shape = False
     for cnt in contours:
         area = cv2.contourArea(cnt)
-        if area > 0.03 * hinge_bin.shape[0] * hinge_bin.shape[1]:
+        if area > 0.01 * hinge_bin.shape[0] * hinge_bin.shape[1]:
             epsilon = 0.05 * cv2.arcLength(cnt, True)
             approx = cv2.approxPolyDP(cnt, epsilon, True)
-            if len(approx) == 4:
+            if 4 <= len(approx) <= 6:
                 # Contraste local
                 mask = np.zeros_like(hinge_gray)
-                cv2.drawContours(mask, [approx], -1, 255, -1)
+                cv2.drawContours(frame_roi, [approx + [roi_hinge_scaled[0], roi_hinge_scaled[1]]], -1, (255, 0, 255), 2)
                 mean_in = cv2.mean(hinge_gray, mask=mask)[0]
                 mean_out = cv2.mean(hinge_gray, mask=cv2.bitwise_not(mask))[0]
                 if abs(mean_in - mean_out) > 30:  # Contraste suficiente
@@ -191,14 +194,23 @@ while True:
     # --- Combinación de ambos métodos ---
     hinge_detected = hinge_detected_yolo or hinge_detected_shape
 
+    # --- Ventana temporal: solo cuenta evento si hay 5+ detecciones en 3 segundos ---
+    now_time = time.time()
+    if hinge_detected:
+        hinge_detection_times.append(now_time)
+
+    detections_last_3s = [t for t in hinge_detection_times if now_time - t <= 3]
+
+    if len(detections_last_3s) >= 5 and not objeto_hinge_presente_anterior:
+        objeto_hinge_count += 1
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Event HINGE VERDADERO detected! (ID: {objeto_hinge_count})")
+        hinge_detection_times.clear()
+    objeto_hinge_presente_anterior = len(detections_last_3s) >= 5
+
+    # Dibuja el bounding box del hinge si hay detección
     if hinge_detected and hinge_bbox:
         cv2.rectangle(frame_roi, (hinge_bbox[0], hinge_bbox[1]), (hinge_bbox[2], hinge_bbox[3]), (0, 0, 255), 2)
         cv2.putText(frame_roi, "HINGE", (hinge_bbox[0], hinge_bbox[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,0,255), 2)
-
-    if hinge_detected and not objeto_hinge_presente_anterior:
-        objeto_hinge_count += 1
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] Event HINGE detected! (ID: {objeto_hinge_count})")
-    objeto_hinge_presente_anterior = hinge_detected
 
     # Estadísticas de personas y ROIs
     person_counts.append(person_count_this_frame)
