@@ -142,9 +142,8 @@ with dai.Device(pipeline) as device:
     manip_queue = device.getOutputQueue("manip", maxSize=4, blocking=False)
     # depth_queue = device.getOutputQueue("depth", maxSize=4, blocking=False)  # No se usa para solo personas
 
-    esperar_hasta_proximo_multiplo(MINUTO_MULTIPLO)
-
     while True:
+        esperar_hasta_proximo_multiplo(MINUTO_MULTIPLO)
         manage_disk_usage(VIDEO_DIR, MAX_USAGE_BYTES)
 
         now = datetime.now()
@@ -242,7 +241,7 @@ with dai.Device(pipeline) as device:
             while True:
                 # Usa el primer frame leído antes del bucle
                 if frames_in_segment == 0:
-                    current_frame = frame
+                    current_frame = frame_1080
                     current_detections = in_detections
                 else:
                     in_video = video_queue.get()
@@ -336,7 +335,7 @@ with dai.Device(pipeline) as device:
             csv_writer.writerow([
                 fecha, hora, minuto,
                 f"{pct_left:.1f}", f"{pct_center:.1f}", f"{pct_right:.1f}", f"{pct_out_roi:.1f}", avg_personas,
-                filename, "oak_recorder_3.py"
+                filename, "oak_recorder_3_1.py"
             ])
             csv_file.flush()
             csv_file.close()
