@@ -133,14 +133,6 @@ with dai.Device(pipeline) as device:
     detections_queue = device.getOutputQueue("detections", maxSize=4, blocking=False)
     # depth_queue = device.getOutputQueue("depth", maxSize=4, blocking=False)  # No se usa para solo personas
 
-    # CSV setup
-    csv_path = os.path.join(VIDEO_DIR, day_folder, "person_stats.csv")
-    new_csv = not os.path.exists(csv_path)
-    csv_file = open(csv_path, "a", newline="")
-    import csv
-    csv_writer = csv.writer(csv_file)
-    csv_writer.writerow(["Timestamp", "%ROI_Left", "%ROI_Center", "%ROI_Right", "%Fuera_ROI", "Avg"])
-
     esperar_hasta_proximo_multiplo(MINUTO_MULTIPLO)
 
     while True:
@@ -151,6 +143,15 @@ with dai.Device(pipeline) as device:
         hour_folder = now.strftime("%H")
         output_dir = os.path.join(VIDEO_DIR, day_folder, hour_folder)
         os.makedirs(output_dir, exist_ok=True)
+
+        # CSV setup en la carpeta del día
+        csv_path = os.path.join(VIDEO_DIR, day_folder, "person_stats.csv")
+        new_csv = not os.path.exists(csv_path)
+        csv_file = open(csv_path, "a", newline="")
+        import csv
+        csv_writer = csv.writer(csv_file)
+        if new_csv:
+            csv_writer.writerow(["Timestamp", "%ROI_Left", "%ROI_Center", "%ROI_Right", "%Fuera_ROI", "Avg"])
 
         filename = now.strftime(f"output_%Y%m%d_%H%M%S.mp4")
         filepath = os.path.join(output_dir, filename)
@@ -308,6 +309,6 @@ with dai.Device(pipeline) as device:
             logging.error(f"Error durante la grabación: {e}")
         finally:
             out.release()
+            csv_file.close()
 
-    csv_file.close()
     cv2.destroyAllWindows()
