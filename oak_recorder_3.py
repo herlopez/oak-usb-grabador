@@ -149,8 +149,9 @@ with dai.Device(pipeline) as device:
         import csv
         csv_writer = csv.writer(csv_file)
         if new_csv:
-            csv_writer.writerow(["VideoFile", "Timestamp", "%ROI_Left", "%ROI_Center", "%ROI_Right", "%Fuera_ROI", "Avg"])
-
+            csv_writer.writerow([
+                "Fecha", "Hora", "Minuto", "%ROI_Left", "%ROI_Center", "%ROI_Right", "%Fuera_ROI", "Personas", "VideoFile"
+            ])
         filename = now.strftime(f"output_%Y%m%d_%H%M%S.mp4")
         filepath = os.path.join(output_dir, filename)
 
@@ -271,10 +272,15 @@ with dai.Device(pipeline) as device:
             pct_right = 100 * roi_right_frames / frames_in_segment if frames_in_segment else 0
             pct_out_roi = 100 * out_roi_frames / frames_in_segment if frames_in_segment else 0
             avg_personas = int(np.ceil(np.mean(person_counts))) if person_counts else 0
-            timestamp = now.strftime('%Y-%m-%d %H:%M:%S')
+
+            fecha = now.strftime('%Y-%m-%d')
+            hora = now.strftime('%H')
+            minuto = now.strftime('%M')
+
             csv_writer.writerow([
-                filename, timestamp,
-                f"{pct_left:.1f}", f"{pct_center:.1f}", f"{pct_right:.1f}", f"{pct_out_roi:.1f}", avg_personas
+                fecha, hora, minuto,
+                f"{pct_left:.1f}", f"{pct_center:.1f}", f"{pct_right:.1f}", f"{pct_out_roi:.1f}", avg_personas,
+                filename
             ])
             csv_file.flush()
             csv_file.close()
