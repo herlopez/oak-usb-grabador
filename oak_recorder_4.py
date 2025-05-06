@@ -371,7 +371,7 @@ with dai.Device(pipeline) as device:
                 # Usar un flag para asegurar que el corte solo ocurra una vez por segmento
             
 
-                if now.second == 00 and frames_in_segment > 0:                 # Imprime timestamp del último frame solo una vez
+                if now.second == 59 and frames_in_segment > 0:              # Imprime timestamp del último frame solo una vez
                     print(f"Último frame: {datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')}")
                     print(f"Grabación de {MINUTO_MULTIPLO} minuto(s) completada.")
                     logging.info(f"Fin de grabación: {filepath}")
