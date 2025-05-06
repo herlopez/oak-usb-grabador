@@ -177,6 +177,7 @@ with dai.Device(pipeline) as device:
     manip_queue = device.getOutputQueue("manip", maxSize=4, blocking=False)     # 416x416
     # Espera solo antes de iniciar la grabación
     esperar_hasta_proximo_multiplo(MINUTO_MULTIPLO)
+    ultimo_minuto_corte = None
 
     while True:
         manage_disk_usage(VIDEO_DIR, MAX_USAGE_BYTES)
@@ -371,10 +372,13 @@ with dai.Device(pipeline) as device:
                 # Usar un flag para asegurar que el corte solo ocurra una vez por segmento
             
 
-                if now.second == 59 and frames_in_segment > 0:              # Imprime timestamp del último frame solo una vez
-                    print(f"Último frame: {datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')}")
+                now = datetime.now()
+                if (now.second == 0 and frames_in_segment > 0
+                    and (ultimo_minuto_corte is None or now.minute != ultimo_minuto_corte)):
+                    print(f"Último frame: {now.strftime('%Y-%m-%d %H:%M:%S.%f')}")
                     print(f"Grabación de {MINUTO_MULTIPLO} minuto(s) completada.")
                     logging.info(f"Fin de grabación: {filepath}")
+                    ultimo_minuto_corte = now.minute
                     break
 
         except KeyboardInterrupt:
