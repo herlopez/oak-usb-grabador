@@ -60,6 +60,21 @@ def esperar_hasta_proximo_multiplo(minuto_multiplo):
         time.sleep(min(1, espera))
         espera -= 1
 
+def esperar_hasta_proximo_multiplo_2(minuto_multiplo):
+    now = datetime.now()
+    minutos = now.minute
+    segundos = now.second
+    microsegundos = now.microsecond
+    minutos_a_sumar = (minuto_multiplo - (minutos % minuto_multiplo)) % minuto_multiplo
+    if minutos_a_sumar == 0 and (segundos > 0 or microsegundos > 0):
+        minutos_a_sumar = minuto_multiplo
+    proximo = (now + timedelta(minutes=minutos_a_sumar)).replace(second=0, microsecond=0)
+    espera = (proximo - now).total_seconds()
+    print(f"Esperando {espera:.2f} segundos hasta el próximo múltiplo de {minuto_multiplo} minutos...")
+    while espera > 0:
+        time.sleep(min(1, espera))
+        espera -= 1
+
 # Función para escalar ROIs
 def escalar_roi(roi, shape, orig_shape):
     return (
@@ -400,5 +415,7 @@ with dai.Device(pipeline) as device:
             )
             csv_file.flush()
             csv_file.close()
-
+            now = datetime.now()
+            if not (now.second < 5):
+                esperar_hasta_proximo_multiplo_2(MINUTO_MULTIPLO)
     cv2.destroyAllWindows()
