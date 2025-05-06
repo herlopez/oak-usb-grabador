@@ -185,7 +185,7 @@ with dai.Device(pipeline) as device:
     manip_queue = device.getOutputQueue("manip", maxSize=4, blocking=False)     # 416x416
     # Espera solo antes de iniciar la grabación
     # esperar_hasta_proximo_multiplo(MINUTO_MULTIPLO)
-    esperar_hasta_segundo_59
+    esperar_hasta_segundo_59()
     ultimo_minuto_corte = None
     ultimo_minuto_segmento = None
 
