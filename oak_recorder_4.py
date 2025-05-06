@@ -350,7 +350,7 @@ with dai.Device(pipeline) as device:
 
                 now = datetime.now()
                 # if time.time() - start_time >= segment_duration:
-                if now.second == 59 and now.microsecond >= 900000:
+                if now.second == 0 and frames_in_segment > 0:
                     # Imprime timestamp del último frame
                     print(f"Último frame: {datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')}")
                     print(f"Grabación de {MINUTO_MULTIPLO} minuto(s) completada.")
