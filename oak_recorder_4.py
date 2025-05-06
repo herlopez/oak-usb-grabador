@@ -367,7 +367,7 @@ with dai.Device(pipeline) as device:
             
 
                 now = datetime.now()
-                if (now.second == 59 and frames_in_segment > 0
+                if (now.second == 00 and frames_in_segment > 0
                     and (ultimo_minuto_corte is None or now.minute != ultimo_minuto_corte)):
                     print(f"Último frame: {now.strftime('%Y-%m-%d %H:%M:%S.%f')}")
                     print(f"Grabación de {MINUTO_MULTIPLO} minuto(s) completada.")
