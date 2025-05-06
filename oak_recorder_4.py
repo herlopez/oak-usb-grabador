@@ -56,7 +56,9 @@ def esperar_hasta_proximo_multiplo(minuto_multiplo):
     proximo = (now + timedelta(minutes=minutos_a_sumar)).replace(second=0, microsecond=0)
     espera = (proximo - now).total_seconds()
     print(f"Esperando {espera:.2f} segundos hasta el próximo múltiplo de {minuto_multiplo} minutos...")
-    time.sleep(espera)
+    while espera > 0:
+        time.sleep(min(1, espera))
+        espera -= 1
 
 # Función para escalar ROIs
 def escalar_roi(roi, shape, orig_shape):
@@ -361,6 +363,7 @@ with dai.Device(pipeline) as device:
             break
         except Exception as e:
             logging.error(f"Error durante la grabación: {e}")
+            break
         finally:
             out.release()
             # Guardar imagen final de cada stream
