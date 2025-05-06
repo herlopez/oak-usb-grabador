@@ -377,7 +377,9 @@ with dai.Device(pipeline) as device:
                 out.write(current_frame_1080)
                 frames_in_segment += 1
 
-                if time.time() - start_time >= segment_duration:
+                # if time.time() - start_time >= segment_duration:
+                #     break
+                if now.second >= 59:
                     break
         except KeyboardInterrupt:
             print("Grabación interrumpida por el usuario.")
