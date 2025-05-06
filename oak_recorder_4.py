@@ -298,19 +298,6 @@ with dai.Device(pipeline) as device:
                     current_detections = in_detections
                     current_frame_416 = in_manip.getCvFrame()
 
-
-                if frames_in_segment == 0:
-                    current_frame_1080 = frame_1080
-                    current_detections = in_detections
-                    current_frame_416 = frame_416
-                else:
-                    in_cam = cam_queue.get()
-                    in_detections = detections_queue.get()
-                    in_manip = manip_queue.get()
-                    current_frame_1080 = in_cam.getCvFrame()
-                    current_detections = in_detections
-                    current_frame_416 = in_manip.getCvFrame()
-
                 # Guarda el último frame de cada stream
                 last_frame_1080 = current_frame_1080
                 last_frame_416 = current_frame_416
