@@ -178,11 +178,16 @@ with dai.Device(pipeline) as device:
     # Espera solo antes de iniciar la grabación
     esperar_hasta_proximo_multiplo(MINUTO_MULTIPLO)
     ultimo_minuto_corte = None
+    ultimo_minuto_segmento = None
 
     while True:
         manage_disk_usage(VIDEO_DIR, MAX_USAGE_BYTES)
 
         now = datetime.now()
+        if ultimo_minuto_segmento == now.minute:
+            esperar_hasta_proximo_multiplo_2(MINUTO_MULTIPLO)
+            now = datetime.now()
+            
         day_folder = now.strftime("%Y%m%d")
         hour_folder = now.strftime("%H")
         output_dir = os.path.join(VIDEO_DIR, day_folder, hour_folder)
@@ -200,6 +205,8 @@ with dai.Device(pipeline) as device:
             ])
         filename = now.strftime(f"output_%Y%m%d_%H%M%S.mp4")
         filepath = os.path.join(output_dir, filename)
+    
+        ultimo_minuto_segmento = now.minute  # <-- Marca el minuto de este segmento
 
         # Espera el primer frame para obtener el tamaño real
         in_cam = cam_queue.get()
