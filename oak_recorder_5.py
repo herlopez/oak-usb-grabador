@@ -161,10 +161,18 @@ with dai.Device(pipeline) as device:
     manip_queue = device.getOutputQueue("manip", maxSize=4, blocking=False)     # 416x416
     # esperar_hasta_proximo_multiplo(MINUTO_MULTIPLO)
 
+    ultimo_minuto_segmento = None  # Al inicio del script, fuera del while True
+
     while True:
         manage_disk_usage(VIDEO_DIR, MAX_USAGE_BYTES)
 
         now = datetime.now()
+        if ultimo_minuto_segmento == now.minute:
+            # Ya grabamos este minuto, espera al próximo
+            esperar_hasta_proximo_multiplo(MINUTO_MULTIPLO)
+            now = datetime.now()
+        ultimo_minuto_segmento = now.minute
+
         day_folder = now.strftime("%Y%m%d")
         hour_folder = now.strftime("%H")
         output_dir = os.path.join(VIDEO_DIR, day_folder, hour_folder)
