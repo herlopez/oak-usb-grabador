@@ -380,7 +380,7 @@ with dai.Device(pipeline) as device:
             
 
                 now = datetime.now()
-                if (now.second == 0 and frames_in_segment > 0
+                if (now.second == 59 and frames_in_segment > 0
                     and (ultimo_minuto_corte is None or now.minute != ultimo_minuto_corte)):
                     print(f"Último frame: {now.strftime('%Y-%m-%d %H:%M:%S.%f')}")
                     print(f"Grabación de {MINUTO_MULTIPLO} minuto(s) completada.")
@@ -428,6 +428,6 @@ with dai.Device(pipeline) as device:
             csv_file.flush()
             csv_file.close()
             now = datetime.now()
-            if not (now.second < 5):
-                esperar_hasta_proximo_multiplo_2(MINUTO_MULTIPLO)
+            # if not (now.second < 5):
+            #     esperar_hasta_proximo_multiplo_2(MINUTO_MULTIPLO)
     cv2.destroyAllWindows()
