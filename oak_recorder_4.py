@@ -255,11 +255,11 @@ with dai.Device(pipeline) as device:
         # Para guardar el último frame de cada stream
         last_frame_1080 = None
         last_frame_416 = None
-        segment_cut_done = False  # <-- reinicia aquí para cada segmento
 
 
         try:
             while True:
+                segment_cut_done = False  # <-- reinicia aquí para cada segmento
                 # Espera el primer frame para obtener el tamaño real
                 if frames_in_segment == 0:
                     current_frame_1080 = frame_1080
@@ -356,7 +356,7 @@ with dai.Device(pipeline) as device:
                 # Usar un flag para asegurar que el corte solo ocurra una vez por segmento
             
 
-                if now.second == 00 and now.microsecond >= 0 and frames_in_segment > 0:                    # Imprime timestamp del último frame solo una vez
+                if now.second == 00 and now.microsecond >= 0 and frames_in_segment > 0 and segment_cut_done == false:                    # Imprime timestamp del último frame solo una vez
                     print(f"Último frame: {datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')}")
                     print(f"Grabación de {MINUTO_MULTIPLO} minuto(s) completada.")
                     logging.info(f"Fin de grabación: {filepath}")
