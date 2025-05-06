@@ -256,6 +256,22 @@ with dai.Device(pipeline) as device:
 
         try:
             while True:
+                # Espera el primer frame para obtener el tamaño real
+                if frames_in_segment == 0:
+                    current_frame_1080 = frame_1080
+                    current_detections = in_detections
+                    current_frame_416 = frame_416
+                    # Imprime timestamp del primer frame
+                    print(f"Primer frame: {datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')}")
+                else:
+                    in_cam = cam_queue.get()
+                    in_detections = detections_queue.get()
+                    in_manip = manip_queue.get()
+                    current_frame_1080 = in_cam.getCvFrame()
+                    current_detections = in_detections
+                    current_frame_416 = in_manip.getCvFrame()
+
+
                 if frames_in_segment == 0:
                     current_frame_1080 = frame_1080
                     current_detections = in_detections
@@ -331,12 +347,14 @@ with dai.Device(pipeline) as device:
                 frames_in_segment += 1
 
                 now = datetime.now()
-                # if now.second >= 59:
-                #     break
-                if time.time() - start_time >= segment_duration:
-                    # print(f"Grabación de {MINUTO_MULTIPLO} minuto(s) completada.")
-                    # logging.info(f"Fin de grabación: {filepath}")
+                # if time.time() - start_time >= segment_duration:
+                if now.second >= 59:
+                    # Imprime timestamp del último frame
+                    print(f"Último frame: {datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')}")
+                    print(f"Grabación de {MINUTO_MULTIPLO} minuto(s) completada.")
+                    logging.info(f"Fin de grabación: {filepath}")
                     break
+
         except KeyboardInterrupt:
             print("Grabación interrumpida por el usuario.")
             logging.info("Grabación interrumpida por el usuario.")
