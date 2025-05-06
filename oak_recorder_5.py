@@ -167,7 +167,7 @@ with dai.Device(pipeline) as device:
         manage_disk_usage(VIDEO_DIR, MAX_USAGE_BYTES)
 
         now = datetime.now()
-        if ultimo_minuto_segmento == now.minute:
+        while ultimo_minuto_segmento == now.minute:
             # Ya grabamos este minuto, espera al próximo
             esperar_hasta_proximo_multiplo(MINUTO_MULTIPLO)
             now = datetime.now()
