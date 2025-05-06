@@ -76,6 +76,14 @@ def esperar_hasta_proximo_multiplo_2(minuto_multiplo):
             time.sleep(min(1, espera))
             espera -= 1
 
+def esperar_hasta_segundo_59():
+    now = datetime.now()
+    espera = 59 - now.second - now.microsecond / 1_000_000
+    if espera < 0:
+        espera += 60
+    print(f"Esperando {espera:.2f} segundos hasta el segundo 59...")
+    time.sleep(espera)
+
 # Función para escalar ROIs
 def escalar_roi(roi, shape, orig_shape):
     return (
@@ -176,7 +184,8 @@ with dai.Device(pipeline) as device:
     detections_queue = device.getOutputQueue("detections", maxSize=4, blocking=False)
     manip_queue = device.getOutputQueue("manip", maxSize=4, blocking=False)     # 416x416
     # Espera solo antes de iniciar la grabación
-    esperar_hasta_proximo_multiplo(MINUTO_MULTIPLO)
+    # esperar_hasta_proximo_multiplo(MINUTO_MULTIPLO)
+    esperar_hasta_segundo_59
     ultimo_minuto_corte = None
     ultimo_minuto_segmento = None
 
@@ -367,7 +376,7 @@ with dai.Device(pipeline) as device:
             
 
                 now = datetime.now()
-                if (now.second == 59 and frames_in_segment > 0
+                if (now.second == 00 and frames_in_segment > 0
                     and (ultimo_minuto_corte is None or now.minute != ultimo_minuto_corte)):
                     print(f"Último frame: {now.strftime('%Y-%m-%d %H:%M:%S.%f')}")
                     print(f"Grabación de {MINUTO_MULTIPLO} minuto(s) completada.")
