@@ -379,7 +379,11 @@ with dai.Device(pipeline) as device:
 
                 # if time.time() - start_time >= segment_duration:
                 #     break
-                if now.second >= 59:
+                now = datetime.now()
+                if now.second == 59 and frames_in_segment > 0:
+                    print(f"Último frame: {now.strftime('%Y-%m-%d %H:%M:%S.%f')}")
+                    print(f"Grabación de {MINUTO_MULTIPLO} minuto(s) completada.")
+                    logging.info(f"Fin de grabación: {filepath}")
                     break
         except KeyboardInterrupt:
             print("Grabación interrumpida por el usuario.")
