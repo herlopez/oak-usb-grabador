@@ -82,7 +82,7 @@ def esperar_hasta_segundo_59():
     if espera < 0:
         espera += 60
     print(f"Esperando {espera:.2f} segundos hasta el segundo 59...")
-    time.sleep(espera)
+    time.sleep(espera+1)
 
 # Función para escalar ROIs
 def escalar_roi(roi, shape, orig_shape):
