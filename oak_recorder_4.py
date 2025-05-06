@@ -255,6 +255,8 @@ with dai.Device(pipeline) as device:
         # Para guardar el último frame de cada stream
         last_frame_1080 = None
         last_frame_416 = None
+        segment_cut_done = False  # <-- reinicia aquí para cada segmento
+
 
         try:
             while True:
@@ -352,8 +354,7 @@ with dai.Device(pipeline) as device:
                 now = datetime.now()
                 # Solo cortar si estamos en el primer frame del nuevo minuto y no ya cortamos en este ciclo
                 # Usar un flag para asegurar que el corte solo ocurra una vez por segmento
-                if not 'segment_cut_done' in locals():
-                    segment_cut_done = False
+            
 
                 if now.second == 0 and frames_in_segment > 0 and not segment_cut_done:
                     # Imprime timestamp del último frame solo una vez
