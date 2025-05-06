@@ -62,7 +62,8 @@ frames_per_segment = int(fps * segment_duration)
 segment_idx = 0
 frame_idx = 0
 objeto_hinge_presente_anterior = False
-hinge_detection_times = deque(maxlen=20)  # Guarda los últimos timestamps de detección
+hinge_detection_times = deque(maxlen=30)  # Guarda los últimos timestamps de detección
+last_hinge_event_time = 0  # Cooldown para evitar múltiples conteos
 
 while True:
     ret, frame = cap.read()
@@ -178,7 +179,6 @@ while True:
             max_area = area
             max_cnt = cnt
 
-    
     hinge_detected_shape = False
     if max_cnt is not None and max_area > 0.01 * hinge_bin.shape[0] * hinge_bin.shape[1]:
         epsilon = 0.05 * cv2.arcLength(max_cnt, True)
@@ -193,9 +193,6 @@ while True:
                 hinge_detected_shape = True
                 x, y, w, h = cv2.boundingRect(approx)
                 aspect_ratio = max(w, h) / (min(w, h) + 1e-5)
-                # No descartes por aspect_ratio, o usa un valor muy alto
-                # if aspect_ratio > 100:
-                #     continue
                 x1 = roi_hinge_scaled[0] + x
                 y1 = roi_hinge_scaled[1] + y
                 x2 = x1 + w
@@ -207,18 +204,19 @@ while True:
     # --- Combinación de ambos métodos ---
     hinge_detected = hinge_detected_yolo or hinge_detected_shape
 
-    # --- Ventana temporal: solo cuenta evento si hay 5+ detecciones en 3 segundos ---
+    # --- Ventana temporal: solo cuenta evento si hay 5+ detecciones en 5 segundos y cooldown de 5s ---
     now_time = time.time()
     if hinge_detected:
         hinge_detection_times.append(now_time)
 
-    detections_last_3s = [t for t in hinge_detection_times if now_time - t <= 3]
+    detections_last_5s = [t for t in hinge_detection_times if now_time - t <= 5]
 
-    if len(detections_last_3s) >= 5 and not objeto_hinge_presente_anterior:
+    if len(detections_last_5s) >= 5 and (now_time - last_hinge_event_time > 5):
         objeto_hinge_count += 1
+        last_hinge_event_time = now_time
         print(f"[{datetime.now().strftime('%H:%M:%S')}] Event HINGE VERDADERO detected! (ID: {objeto_hinge_count})")
         hinge_detection_times.clear()
-    objeto_hinge_presente_anterior = len(detections_last_3s) >= 5
+    objeto_hinge_presente_anterior = len(detections_last_5s) >= 5
 
     # Dibuja el bounding box del hinge si hay detección
     if hinge_detected and hinge_bbox:
