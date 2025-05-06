@@ -250,6 +250,9 @@ with dai.Device(pipeline) as device:
         objeto_hinge_count = 0  # <--- contador de eventos hinge
         objeto_hinge_presente_anterior = False
 
+        last_frame_1080 = None
+        last_frame_416 = None
+
         try:
             while True:
                 if frames_in_segment == 0:
@@ -376,6 +379,10 @@ with dai.Device(pipeline) as device:
 
                 out.write(current_frame_1080)
                 frames_in_segment += 1
+
+                # Guarda el último frame
+                last_frame_1080 = current_frame_1080
+                last_frame_416 = current_frame_416
 
                 # if time.time() - start_time >= segment_duration:
                 #     break
