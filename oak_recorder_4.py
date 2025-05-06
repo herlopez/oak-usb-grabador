@@ -330,7 +330,10 @@ with dai.Device(pipeline) as device:
                 out.write(current_frame_1080)
                 frames_in_segment += 1
 
-                if time.time() - start_time >= segment_duration:
+                now = datetime.now()
+                if now.second >= 59:
+                    break
+                # if time.time() - start_time >= segment_duration:
                     # print(f"Grabación de {MINUTO_MULTIPLO} minuto(s) completada.")
                     # logging.info(f"Fin de grabación: {filepath}")
                     break
