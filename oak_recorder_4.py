@@ -348,13 +348,19 @@ with dai.Device(pipeline) as device:
                 out.write(current_frame_1080)
                 frames_in_segment += 1
 
+                # Controla el corte del segmento solo una vez por ciclo
                 now = datetime.now()
-                # if time.time() - start_time >= segment_duration:
-                if now.second == 0 and frames_in_segment > 0:
-                    # Imprime timestamp del último frame
+                # Solo cortar si estamos en el primer frame del nuevo minuto y no ya cortamos en este ciclo
+                # Usar un flag para asegurar que el corte solo ocurra una vez por segmento
+                if not 'segment_cut_done' in locals():
+                    segment_cut_done = False
+
+                if now.second == 0 and frames_in_segment > 0 and not segment_cut_done:
+                    # Imprime timestamp del último frame solo una vez
                     print(f"Último frame: {datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')}")
                     print(f"Grabación de {MINUTO_MULTIPLO} minuto(s) completada.")
                     logging.info(f"Fin de grabación: {filepath}")
+                    segment_cut_done = True
                     break
 
         except KeyboardInterrupt:
