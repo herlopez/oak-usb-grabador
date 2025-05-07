@@ -17,6 +17,8 @@ from datetime import datetime, timedelta
 from collections import deque
 import csv
 
+script_name = os.path.basename(__file__)
+
 # Configuración del logging
 logging.basicConfig(
     filename='/mnt/nvme/grabador.log',
@@ -193,7 +195,7 @@ with dai.Device(pipeline) as device:
         # Registro de arranque del programa
         timestamp_inicio_programa = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
         csv_writer.writerow([
-            "-", "-", "-", "-", "-", "-", "-", "-", "-", "oak_recorder_5.py", "-", "-", timestamp_inicio_programa, "inicio"
+            "-", "-", "-", "-", "-", "-", "-", "-", "-", script_name, "-", "-", timestamp_inicio_programa, "inicio"
         ])
         csv_file.flush()
         filename = now.strftime(f"output_%Y%m%d_%H%M%S.mp4")
