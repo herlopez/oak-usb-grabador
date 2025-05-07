@@ -351,19 +351,35 @@ with dai.Device(pipeline) as device:
                         cv2.circle(current_frame_1080, (cx_rgb, cy_rgb), 5, (0,255,255), -1)
                         cv2.putText(current_frame_1080, f"{distance_m:.1f}m", (cx_rgb, cy_rgb-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,255), 1)
 
-                        # Permite que una persona cuente para varios ROIs si corresponde
-                        if roi_left[0] <= cx_rgb < roi_left[0] + roi_left[2] and roi_left[1] <= cy_rgb < roi_left[1] + roi_left[3]:
+
+
+                        if roi_left[0] <= cx < roi_left[0] + roi_left[2] and roi_left[1] <= cy < roi_left[1] + roi_left[3]:
                             roi_left_present = True
                             if distance_m > 0:
                                 dist_left.append(distance_m)
-                        if roi_center[0] <= cx_rgb < roi_center[0] + roi_center[2] and roi_center[1] <= cy_rgb < roi_center[1] + roi_center[3]:
+                        elif roi_center[0] <= cx < roi_center[0] + roi_center[2] and roi_center[1] <= cy < roi_center[1] + roi_center[3]:
                             roi_center_present = True
                             if distance_m > 0:
                                 dist_center.append(distance_m)
-                        if roi_right[0] <= cx_rgb < roi_right[0] + roi_right[2] and roi_right[1] <= cy_rgb < roi_right[1] + roi_right[3]:
+                        elif roi_right[0] <= cx < roi_right[0] + roi_right[2] and roi_right[1] <= cy < roi_right[1] + roi_right[3]:
                             roi_right_present = True
                             if distance_m > 0:
                                 dist_right.append(distance_m)
+
+                        # Permite que una persona cuente para varios ROIs si corresponde
+                        # if roi_left[0] <= cx_rgb < roi_left[0] + roi_left[2] and roi_left[1] <= cy_rgb < roi_left[1] + roi_left[3]:
+                        #     roi_left_present = True
+                        #     if distance_m > 0:
+                        #         dist_left.append(distance_m)
+                        # if roi_center[0] <= cx_rgb < roi_center[0] + roi_center[2] and roi_center[1] <= cy_rgb < roi_center[1] + roi_center[3]:
+                        #     roi_center_present = True
+                        #     if distance_m > 0:
+                        #         dist_center.append(distance_m)
+                        # if roi_right[0] <= cx_rgb < roi_right[0] + roi_right[2] and roi_right[1] <= cy_rgb < roi_right[1] + roi_right[3]:
+                        #     roi_right_present = True
+                        #     if distance_m > 0:
+                        #         dist_right.append(distance_m)
+
                     else:
                         # Objeto NO persona: cuenta para objeto_hinge
                         inter_x1 = max(x1, roi_hinge_scaled[0])
