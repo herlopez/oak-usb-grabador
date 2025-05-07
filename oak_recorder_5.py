@@ -194,20 +194,19 @@ with dai.Device(pipeline) as device:
     while True:
         manage_disk_usage(VIDEO_DIR, MAX_USAGE_BYTES)
 
+        now = datetime.now()
+        while ultimo_minuto_segmento == now.minute:
+            esperar_hasta_proximo_multiplo(MINUTO_MULTIPLO)
+            now = datetime.now()
+        ultimo_minuto_segmento = now.minute
+
         day_folder = now.strftime("%Y%m%d")
         hour_folder = now.strftime("%H")
         output_dir = os.path.join(VIDEO_DIR, day_folder, hour_folder)
         os.makedirs(output_dir, exist_ok=True)
 
-
-        now = datetime.now()
-        while ultimo_minuto_segmento == now.minute:
-            # Ya grabamos este minuto, espera al próximo
-            esperar_hasta_proximo_multiplo(MINUTO_MULTIPLO)
-            now = datetime.now()
-        ultimo_minuto_segmento = now.minute
-
-
+        filename = now.strftime(f"output_%Y%m%d_%H%M%S.mp4")
+        filepath = os.path.join(output_dir, filename)
 
 
 
