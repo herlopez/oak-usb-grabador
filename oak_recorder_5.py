@@ -189,13 +189,13 @@ with dai.Device(pipeline) as device:
         csv_writer = csv.writer(csv_file)
         if new_csv:
             csv_writer.writerow([
-                "Fecha", "Hora", "Minuto", "%ROI_Left", "%ROI_Center", "%ROI_Right", "%Fuera_ROI", "Personas",
+                "Fecha", "Hora", "Minuto", "%ROI_Left", "%ROI_Center", "%ROI_Right", "%Fuera_ROI", "Qty.Personas",
                 "VideoFile", "Script", "objeto_hinge", "Timestamp_Fin", "Timestamp_Inicio", "Event"
             ])
         # Registro de arranque del programa
         timestamp_inicio_programa = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
         csv_writer.writerow([
-            "-", "-", "-", "-", "-", "-", "-", "-", "-", script_name, "-", "-", timestamp_inicio_programa, "inicio"
+            "-", "-", "-", "-", "-", "-", "-", "-", "-", script_name, "-", "-", timestamp_inicio_programa, "Start"
         ])
         csv_file.flush()
         filename = now.strftime(f"output_%Y%m%d_%H%M%S.mp4")
@@ -442,7 +442,7 @@ with dai.Device(pipeline) as device:
             csv_writer.writerow([
                 fecha, hora, minuto,
                 f"{pct_left:.1f}", f"{pct_center:.1f}", f"{pct_right:.1f}", f"{pct_out_roi:.1f}", avg_personas,
-                filename, "oak_recorder_5.py", objeto_hinge_count, timestamp_completo, timestamp_inicio
+                filename, script_name, objeto_hinge_count, timestamp_completo, timestamp_inicio, "Detection"
             ])
             print(
                 f"%ROI_Left={pct_left:.1f} %ROI_Center={pct_center:.1f} %ROI_Right={pct_right:.1f} "
