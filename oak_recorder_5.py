@@ -166,6 +166,24 @@ with dai.Device(pipeline) as device:
     ultimo_minuto_segmento = None  # Al inicio del script, fuera del while True
     timestamp_inicio = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
 
+    # CSV setup en la carpeta del día (una sola fila por segmento)
+    csv_path = os.path.join(VIDEO_DIR, day_folder, f"{day_folder}_stats.csv")
+    new_csv = not os.path.exists(csv_path)
+    csv_file = open(csv_path, "a", newline="")
+    csv_writer = csv.writer(csv_file)
+    if new_csv:
+        csv_writer.writerow([
+            "Fecha", "Hora", "Minuto", "%ROI_Left", "%ROI_Center", "%ROI_Right", "%Fuera_ROI", "Qty.Personas",
+            "VideoFile", "Script", "objeto_hinge", "Timestamp_Fin", "Timestamp_Inicio", "Event"
+        ])
+    # Registro de arranque del programa
+    timestamp_inicio_programa = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+    csv_writer.writerow([
+        "-", "-", "-", "-", "-", "-", "-", "-", "-", script_name, "-", "-", timestamp_inicio_programa, "Start"
+    ])
+    csv_file.flush()
+    filename = now.strftime(f"output_%Y%m%d_%H%M%S.mp4")
+    filepath = os.path.join(output_dir, filename)
 
     while True:
         manage_disk_usage(VIDEO_DIR, MAX_USAGE_BYTES)
@@ -182,24 +200,7 @@ with dai.Device(pipeline) as device:
         output_dir = os.path.join(VIDEO_DIR, day_folder, hour_folder)
         os.makedirs(output_dir, exist_ok=True)
 
-        # CSV setup en la carpeta del día (una sola fila por segmento)
-        csv_path = os.path.join(VIDEO_DIR, day_folder, f"{day_folder}_stats.csv")
-        new_csv = not os.path.exists(csv_path)
-        csv_file = open(csv_path, "a", newline="")
-        csv_writer = csv.writer(csv_file)
-        if new_csv:
-            csv_writer.writerow([
-                "Fecha", "Hora", "Minuto", "%ROI_Left", "%ROI_Center", "%ROI_Right", "%Fuera_ROI", "Qty.Personas",
-                "VideoFile", "Script", "objeto_hinge", "Timestamp_Fin", "Timestamp_Inicio", "Event"
-            ])
-        # Registro de arranque del programa
-        timestamp_inicio_programa = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
-        csv_writer.writerow([
-            "-", "-", "-", "-", "-", "-", "-", "-", "-", script_name, "-", "-", timestamp_inicio_programa, "Start"
-        ])
-        csv_file.flush()
-        filename = now.strftime(f"output_%Y%m%d_%H%M%S.mp4")
-        filepath = os.path.join(output_dir, filename)
+
 
         # Espera el primer frame para obtener el tamaño real
         in_cam = cam_queue.get()
