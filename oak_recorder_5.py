@@ -324,15 +324,16 @@ with dai.Device(pipeline) as device:
                     y1 = int(detection.ymin * current_frame_1080.shape[0])
                     x2 = int(detection.xmax * current_frame_1080.shape[1])
                     y2 = int(detection.ymax * current_frame_1080.shape[0])
-                    cx = int((x1 + x2) / 2)
-                    cy = int((y1 + y2) / 2)
 
                     if detection.label == 0:
                         # Persona: cuenta para ROIs y estadísticas
                         person_count_this_frame += 1
-                        # Calcular distancia usando el mapa de profundidad
+
+                        # Calcular centro en RGB
                         cx_rgb = int((x1 + x2) / 2)
                         cy_rgb = int((y1 + y2) / 2)
+
+                        # Reescalar a profundidad
                         h_rgb, w_rgb = current_frame_1080.shape[:2]
                         h_depth, w_depth = current_depth_frame.shape[:2]
                         cx_depth = int(cx_rgb * w_depth / w_rgb)
@@ -343,7 +344,26 @@ with dai.Device(pipeline) as device:
                             # Filtra valores fuera de rango
                             if not (2 <= distance_m <= 15):
                                 distance_m = 0
+                        else:
+                            distance_m = 0
 
+                        # Dibuja el centro para depuración visual
+                        cv2.circle(current_frame_1080, (cx_rgb, cy_rgb), 5, (0,255,255), -1)
+                        cv2.putText(current_frame_1080, f"{distance_m:.1f}m", (cx_rgb, cy_rgb-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,255), 1)
+
+                        # Permite que una persona cuente para varios ROIs si corresponde
+                        if roi_left[0] <= cx_rgb < roi_left[0] + roi_left[2] and roi_left[1] <= cy_rgb < roi_left[1] + roi_left[3]:
+                            roi_left_present = True
+                            if distance_m > 0:
+                                dist_left.append(distance_m)
+                        if roi_center[0] <= cx_rgb < roi_center[0] + roi_center[2] and roi_center[1] <= cy_rgb < roi_center[1] + roi_center[3]:
+                            roi_center_present = True
+                            if distance_m > 0:
+                                dist_center.append(distance_m)
+                        if roi_right[0] <= cx_rgb < roi_right[0] + roi_right[2] and roi_right[1] <= cy_rgb < roi_right[1] + roi_right[3]:
+                            roi_right_present = True
+                            if distance_m > 0:
+                                dist_right.append(distance_m)
                     else:
                         # Objeto NO persona: cuenta para objeto_hinge
                         inter_x1 = max(x1, roi_hinge_scaled[0])
