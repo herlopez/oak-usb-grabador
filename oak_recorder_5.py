@@ -460,6 +460,7 @@ with dai.Device(pipeline) as device:
                 f"VideoFile={filename} objeto_hinge={objeto_hinge_count}"
             )
             csv_file.flush()
-            csv_file.close()
+            
 
+    csv_file.close()
     cv2.destroyAllWindows()
