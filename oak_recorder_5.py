@@ -345,8 +345,8 @@ with dai.Device(pipeline) as device:
 
                         color = (0, 255, 0)  # Verde para personas
                         label_text = "Persona"
-                        cv2.rectangle(current_frame_1080, (x1, y1), (x2, y2), color, 2)
-                        cv2.putText(current_frame_1080, label_text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
+                        # cv2.rectangle(current_frame_1080, (x1, y1), (x2, y2), color, 2)
+                        # cv2.putText(current_frame_1080, label_text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
 
                         # Calcular centro en RGB
                         cx_rgb = int((x1 + x2) / 2)
@@ -378,8 +378,8 @@ with dai.Device(pipeline) as device:
                             distance_m = 0
 
                         # Dibuja el centro para depuración visual
-                        cv2.circle(current_frame_1080, (cx_rgb, cy_rgb), 5, (0,255,255), -1)
-                        cv2.putText(current_frame_1080, f"{distance_m:.1f}m", (cx_rgb, cy_rgb-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,255), 1)
+                        # cv2.circle(current_frame_1080, (cx_rgb, cy_rgb), 5, (0,255,255), -1)
+                        # cv2.putText(current_frame_1080, f"{distance_m:.1f}m", (cx_rgb, cy_rgb-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,255), 1)
 
 
 
