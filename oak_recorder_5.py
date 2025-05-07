@@ -188,12 +188,12 @@ with dai.Device(pipeline) as device:
         if new_csv:
             csv_writer.writerow([
                 "Fecha", "Hora", "Minuto", "%ROI_Left", "%ROI_Center", "%ROI_Right", "%Fuera_ROI", "Personas",
-                "VideoFile", "Script", "objeto_hinge", "Timestamp_Fin", "Timestamp_Inicio"
+                "VideoFile", "Script", "objeto_hinge", "Timestamp_Fin", "Timestamp_Inicio", "Event"
             ])
         # Registro de arranque del programa
         timestamp_inicio_programa = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
         csv_writer.writerow([
-            "-", "-", "-", "-", "-", "-", "-", "-", "-", "oak_recorder_5.py", "-", "-", timestamp_inicio_programa
+            "-", "-", "-", "-", "-", "-", "-", "-", "-", "oak_recorder_5.py", "-", "-", timestamp_inicio_programa, "inicio"
         ])
         csv_file.flush()
         filename = now.strftime(f"output_%Y%m%d_%H%M%S.mp4")
