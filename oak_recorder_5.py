@@ -341,9 +341,9 @@ with dai.Device(pipeline) as device:
                         if 0 <= cy_depth < h_depth and 0 <= cx_depth < w_depth:
                             distance_mm = current_depth_frame[cy_depth, cx_depth]
                             distance_m = distance_mm / 1000.0 if distance_mm > 0 else 0
-                            # Filtra valores fuera de rango
-                            if not (2 <= distance_m <= 15):
-                                distance_m = 0
+                            # # Filtra valores fuera de rango
+                            # if not (2 <= distance_m <= 15):
+                            #     distance_m = 0
                         else:
                             distance_m = 0
 
