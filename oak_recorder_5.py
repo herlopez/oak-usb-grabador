@@ -496,6 +496,7 @@ with dai.Device(pipeline) as device:
             break
         except Exception as e:
             logging.error(f"Error durante la grabación: {e}")
+            print(f"Error durante la grabación: {e}")
         finally:
             out.release()
             # Guardar imagen final de cada stream
