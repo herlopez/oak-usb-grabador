@@ -164,6 +164,7 @@ with dai.Device(pipeline) as device:
     # esperar_hasta_proximo_multiplo(MINUTO_MULTIPLO)
 
     ultimo_minuto_segmento = None  # Al inicio del script, fuera del while True
+    now = datetime.now()
     timestamp_inicio = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
 
     day_folder = now.strftime("%Y%m%d")
