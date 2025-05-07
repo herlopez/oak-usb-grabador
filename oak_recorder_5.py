@@ -286,6 +286,7 @@ with dai.Device(pipeline) as device:
 
         timestamp_inicio = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
         segment_start_time = time.time()    
+        minuto_inicio = datetime.now().minute
         try:
             while True:
                 if frames_in_segment == 0:
@@ -493,7 +494,8 @@ with dai.Device(pipeline) as device:
                 last_frame_416 = current_frame_416
 
                 now = datetime.now()
-                if time.time() - segment_start_time >= segment_duration:
+                # Corta exactamente cuando cambia el minuto y el segundo es 0
+                if now.minute != minuto_inicio and now.second == 0:
                     timestamp_completo = now.strftime('%Y-%m-%d %H:%M:%S.%f')
                     print(f"Último frame: {timestamp_completo}")
                     print(f"Grabación de {MINUTO_MULTIPLO} minuto(s) completada.")
