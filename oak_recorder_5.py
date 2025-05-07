@@ -161,11 +161,10 @@ with dai.Device(pipeline) as device:
     cam_queue = device.getOutputQueue("cam", maxSize=4, blocking=False)         # 1080p original
     detections_queue = device.getOutputQueue("detections", maxSize=4, blocking=False)
     manip_queue = device.getOutputQueue("manip", maxSize=4, blocking=False)     # 416x416
-    # esperar_hasta_proximo_multiplo(MINUTO_MULTIPLO)
+    depth_queue = device.getOutputQueue("depth", maxSize=4, blocking=False)     # Profundidad
 
-    ultimo_minuto_segmento = None  # Al inicio del script, fuera del while True
+    ultimo_minuto_segmento = None
     now = datetime.now()
-    timestamp_inicio = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
 
     day_folder = now.strftime("%Y%m%d")
     hour_folder = now.strftime("%H")
@@ -180,16 +179,15 @@ with dai.Device(pipeline) as device:
     if new_csv:
         csv_writer.writerow([
             "Fecha", "Hora", "Minuto", "%ROI_Left", "%ROI_Center", "%ROI_Right", "%Fuera_ROI", "Qty.Personas",
-            "VideoFile", "Script", "objeto_hinge", "Timestamp_Fin", "Timestamp_Inicio", "Event"
+            "VideoFile", "Script", "objeto_hinge", "Timestamp_Fin", "Timestamp_Inicio", "Event",
+            "DistProm_Left", "DistProm_Center", "DistProm_Right"
         ])
     # Registro de arranque del programa
     timestamp_inicio_programa = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
     csv_writer.writerow([
-        "-", "-", "-", "-", "-", "-", "-", "-", "-", script_name, "-", "-", timestamp_inicio_programa, "Start"
+        "-", "-", "-", "-", "-", "-", "-", "-", "-", script_name, "-", "-", timestamp_inicio_programa, "Start", "-", "-", "-"
     ])
     csv_file.flush()
-    filename = now.strftime(f"output_%Y%m%d_%H%M%S.mp4")
-    filepath = os.path.join(output_dir, filename)
 
     while True:
         manage_disk_usage(VIDEO_DIR, MAX_USAGE_BYTES)
@@ -208,14 +206,14 @@ with dai.Device(pipeline) as device:
         filename = now.strftime(f"output_%Y%m%d_%H%M%S.mp4")
         filepath = os.path.join(output_dir, filename)
 
-
-
         # Espera el primer frame para obtener el tamaño real
         in_cam = cam_queue.get()
         in_detections = detections_queue.get()
         in_manip = manip_queue.get()
+        in_depth = depth_queue.get()
         frame_1080 = in_cam.getCvFrame()    # 1080p del stream original
         frame_416 = in_manip.getCvFrame()   # 416x416 del manip
+        depth_frame = in_depth.getFrame()   # Profundidad en mm
 
         # Guardar imagen original 1080p
         img_dir = os.path.join(output_dir, "img")
@@ -275,11 +273,18 @@ with dai.Device(pipeline) as device:
         roi_right_frames = 0
         person_counts = []
         out_roi_frames = 0
-        objeto_hinge_count = 0  # <--- contador de eventos hinge
+        objeto_hinge_count = 0
         objeto_hinge_presente_anterior = False
 
         last_frame_1080 = None
         last_frame_416 = None
+
+        # Para distancias promedio por ROI
+        dist_left = []
+        dist_center = []
+        dist_right = []
+
+        timestamp_inicio = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
 
         try:
             while True:
@@ -287,13 +292,16 @@ with dai.Device(pipeline) as device:
                     current_frame_1080 = frame_1080
                     current_detections = in_detections
                     current_frame_416 = frame_416
+                    current_depth_frame = depth_frame
                 else:
                     in_cam = cam_queue.get()
                     in_detections = detections_queue.get()
                     in_manip = manip_queue.get()
+                    in_depth = depth_queue.get()
                     current_frame_1080 = in_cam.getCvFrame()
                     current_detections = in_detections
                     current_frame_416 = in_manip.getCvFrame()
+                    current_depth_frame = in_depth.getFrame()
 
                 # --- Detección y estadísticas de personas y objeto_hinge ---
                 roi_hinge_scaled = escalar_roi(roi_hinge_orig, current_frame_1080.shape, (original_width, original_height))
@@ -310,6 +318,7 @@ with dai.Device(pipeline) as device:
                 roi_right_present = False
                 person_count_this_frame = 0
 
+                # --- Procesar detecciones y calcular distancias ---
                 for detection in current_detections.detections:
                     x1 = int(detection.xmin * current_frame_1080.shape[1])
                     y1 = int(detection.ymin * current_frame_1080.shape[0])
@@ -321,12 +330,25 @@ with dai.Device(pipeline) as device:
                     if detection.label == 0:
                         # Persona: cuenta para ROIs y estadísticas
                         person_count_this_frame += 1
+                        # Calcular distancia usando el mapa de profundidad
+                        if 0 <= cy < current_depth_frame.shape[0] and 0 <= cx < current_depth_frame.shape[1]:
+                            distance_mm = current_depth_frame[cy, cx]
+                            distance_m = distance_mm / 1000.0 if distance_mm > 0 else 0
+                        else:
+                            distance_m = 0
+
                         if roi_left[0] <= cx < roi_left[0] + roi_left[2] and roi_left[1] <= cy < roi_left[1] + roi_left[3]:
                             roi_left_present = True
+                            if distance_m > 0:
+                                dist_left.append(distance_m)
                         elif roi_center[0] <= cx < roi_center[0] + roi_center[2] and roi_center[1] <= cy < roi_center[1] + roi_center[3]:
                             roi_center_present = True
+                            if distance_m > 0:
+                                dist_center.append(distance_m)
                         elif roi_right[0] <= cx < roi_right[0] + roi_right[2] and roi_right[1] <= cy < roi_right[1] + roi_right[3]:
                             roi_right_present = True
+                            if distance_m > 0:
+                                dist_right.append(distance_m)
                     else:
                         # Objeto NO persona: cuenta para objeto_hinge
                         inter_x1 = max(x1, roi_hinge_scaled[0])
@@ -412,8 +434,6 @@ with dai.Device(pipeline) as device:
                 last_frame_1080 = current_frame_1080
                 last_frame_416 = current_frame_416
 
-                # if time.time() - start_time >= segment_duration:
-                #     break
                 now = datetime.now()
                 if now.second == 59 and frames_in_segment > 0:
                     timestamp_completo = now.strftime('%Y-%m-%d %H:%M:%S.%f')
@@ -443,6 +463,10 @@ with dai.Device(pipeline) as device:
             pct_out_roi = 100 * out_roi_frames / frames_in_segment if frames_in_segment else 0
             avg_personas = int(np.ceil(np.mean(person_counts))) if person_counts else 0
 
+            avg_dist_left = np.mean(dist_left) if dist_left else 0
+            avg_dist_center = np.mean(dist_center) if dist_center else 0
+            avg_dist_right = np.mean(dist_right) if dist_right else 0
+
             fecha = now.strftime('%Y-%m-%d')
             hora = now.strftime('%H')
             minuto = now.strftime('%M')
@@ -451,15 +475,16 @@ with dai.Device(pipeline) as device:
             csv_writer.writerow([
                 fecha, hora, minuto,
                 f"{pct_left:.1f}", f"{pct_center:.1f}", f"{pct_right:.1f}", f"{pct_out_roi:.1f}", avg_personas,
-                filename, script_name, objeto_hinge_count, timestamp_completo, timestamp_inicio, "Detection"
+                filename, script_name, objeto_hinge_count, timestamp_completo, timestamp_inicio, "Detection",
+                f"{avg_dist_left:.2f}", f"{avg_dist_center:.2f}", f"{avg_dist_right:.2f}"
             ])
             print(
                 f"%ROI_Left={pct_left:.1f} %ROI_Center={pct_center:.1f} %ROI_Right={pct_right:.1f} "
                 f"%Fuera_ROI={pct_out_roi:.1f} Personas={avg_personas} "
-                f"VideoFile={filename} objeto_hinge={objeto_hinge_count}"
+                f"VideoFile={filename} objeto_hinge={objeto_hinge_count} "
+                f"DistProm_Left={avg_dist_left:.2f}m DistProm_Center={avg_dist_center:.2f}m DistProm_Right={avg_dist_right:.2f}m"
             )
             csv_file.flush()
-            
 
     csv_file.close()
     cv2.destroyAllWindows()
