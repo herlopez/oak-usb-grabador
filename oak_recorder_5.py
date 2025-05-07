@@ -185,8 +185,15 @@ with dai.Device(pipeline) as device:
         csv_writer = csv.writer(csv_file)
         if new_csv:
             csv_writer.writerow([
-                "Fecha", "Hora", "Minuto", "%ROI_Left", "%ROI_Center", "%ROI_Right", "%Fuera_ROI", "Personas", "VideoFile", "Script", "objeto_hinge"
+                "Fecha", "Hora", "Minuto", "%ROI_Left", "%ROI_Center", "%ROI_Right", "%Fuera_ROI", "Personas",
+                "VideoFile", "Script", "objeto_hinge", "Timestamp_Fin", "Timestamp_Inicio"
             ])
+        # Registro de arranque del programa
+        timestamp_inicio_programa = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+        csv_writer.writerow([
+            "-", "-", "-", "-", "-", "-", "-", "-", "-", "oak_recorder_5.py", "-", "-", timestamp_inicio_programa
+        ])
+        csv_file.flush()
         filename = now.strftime(f"output_%Y%m%d_%H%M%S.mp4")
         filepath = os.path.join(output_dir, filename)
 
@@ -396,9 +403,10 @@ with dai.Device(pipeline) as device:
                 #     break
                 now = datetime.now()
                 if now.second == 59 and frames_in_segment > 0:
-                    print(f"Último frame: {now.strftime('%Y-%m-%d %H:%M:%S.%f')}")
+                    timestamp_completo = now.strftime('%Y-%m-%d %H:%M:%S.%f')
+                    print(f"Último frame: {timestamp_completo}")
                     print(f"Grabación de {MINUTO_MULTIPLO} minuto(s) completada.")
-                    logging.info(f"Fin de grabación: {filepath}")
+                    logging.info(f"Fin de grabación: {filepath} | Timestamp: {timestamp_completo}")
                     break
         except KeyboardInterrupt:
             print("Grabación interrumpida por el usuario.")
@@ -426,10 +434,11 @@ with dai.Device(pipeline) as device:
             hora = now.strftime('%H')
             minuto = now.strftime('%M')
 
+            timestamp_completo = now.strftime('%Y-%m-%d %H:%M:%S.%f')
             csv_writer.writerow([
                 fecha, hora, minuto,
                 f"{pct_left:.1f}", f"{pct_center:.1f}", f"{pct_right:.1f}", f"{pct_out_roi:.1f}", avg_personas,
-                filename, "oak_recorder_5.py", objeto_hinge_count
+                filename, "oak_recorder_5.py", objeto_hinge_count, timestamp_completo, timestamp_inicio
             ])
             print(
                 f"%ROI_Left={pct_left:.1f} %ROI_Center={pct_center:.1f} %ROI_Right={pct_right:.1f} "
