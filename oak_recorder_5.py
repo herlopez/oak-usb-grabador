@@ -356,12 +356,21 @@ with dai.Device(pipeline) as device:
                         h_depth, w_depth = current_depth_frame.shape[:2]
                         cx_depth = int(cx_rgb * w_depth / w_rgb)
                         cy_depth = int(cy_rgb * h_depth / h_rgb)
-                        if 0 <= cy_depth < h_depth and 0 <= cx_depth < w_depth:
-                            distance_mm = current_depth_frame[cy_depth, cx_depth]
-                            distance_m = distance_mm / 1000.0 if distance_mm > 0 else 0
-                            # # Filtra valores fuera de rango
-                            # if not (2 <= distance_m <= 15):
-                            #     distance_m = 0
+
+                        # Tamaño del área a promediar (por ejemplo, 5x5 píxeles)
+                        area = 2  # 2 píxeles a cada lado del centro (total 5x5)
+                        vals = []
+                        for dx in range(-area, area+1):
+                            for dy in range(-area, area+1):
+                                x = cx_depth + dx
+                                y = cy_depth + dy
+                                if 0 <= x < w_depth and 0 <= y < h_depth:
+                                    d = current_depth_frame[y, x]
+                                    if 2000 < d < 15000:  # Solo valores entre 2m y 15m
+                                        vals.append(d)
+                        if vals:
+                            distance_mm = np.median(vals)  # O usa np.mean(vals)
+                            distance_m = distance_mm / 1000.0
                         else:
                             distance_m = 0
 
