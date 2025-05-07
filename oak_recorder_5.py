@@ -370,11 +370,11 @@ with dai.Device(pipeline) as device:
                                     if 500 < d < 20000:  # Solo valores entre 2m y 15m
                                         vals.append(d)
                         if vals:
-                            print(f"Profundidades válidas: {vals}")  # <-- Depuración
+                            # print(f"Profundidades válidas: {vals}")  # <-- Depuración
                             distance_mm = np.median(vals)  # O usa np.mean(vals)
                             distance_m = distance_mm / 1000.0
                         else:
-                            print("Sin valores válidos de profundidad para esta persona")
+                            # print("Sin valores válidos de profundidad para esta persona")
                             distance_m = 0
 
                         # Dibuja el centro para depuración visual
