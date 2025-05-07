@@ -331,24 +331,19 @@ with dai.Device(pipeline) as device:
                         # Persona: cuenta para ROIs y estadísticas
                         person_count_this_frame += 1
                         # Calcular distancia usando el mapa de profundidad
-                        if 0 <= cy < current_depth_frame.shape[0] and 0 <= cx < current_depth_frame.shape[1]:
-                            distance_mm = current_depth_frame[cy, cx]
+                        cx_rgb = int((x1 + x2) / 2)
+                        cy_rgb = int((y1 + y2) / 2)
+                        h_rgb, w_rgb = current_frame_1080.shape[:2]
+                        h_depth, w_depth = current_depth_frame.shape[:2]
+                        cx_depth = int(cx_rgb * w_depth / w_rgb)
+                        cy_depth = int(cy_rgb * h_depth / h_rgb)
+                        if 0 <= cy_depth < h_depth and 0 <= cx_depth < w_depth:
+                            distance_mm = current_depth_frame[cy_depth, cx_depth]
                             distance_m = distance_mm / 1000.0 if distance_mm > 0 else 0
-                        else:
-                            distance_m = 0
+                            # Filtra valores fuera de rango
+                            if not (2 <= distance_m <= 15):
+                                distance_m = 0
 
-                        if roi_left[0] <= cx < roi_left[0] + roi_left[2] and roi_left[1] <= cy < roi_left[1] + roi_left[3]:
-                            roi_left_present = True
-                            if distance_m > 0:
-                                dist_left.append(distance_m)
-                        elif roi_center[0] <= cx < roi_center[0] + roi_center[2] and roi_center[1] <= cy < roi_center[1] + roi_center[3]:
-                            roi_center_present = True
-                            if distance_m > 0:
-                                dist_center.append(distance_m)
-                        elif roi_right[0] <= cx < roi_right[0] + roi_right[2] and roi_right[1] <= cy < roi_right[1] + roi_right[3]:
-                            roi_right_present = True
-                            if distance_m > 0:
-                                dist_right.append(distance_m)
                     else:
                         # Objeto NO persona: cuenta para objeto_hinge
                         inter_x1 = max(x1, roi_hinge_scaled[0])
