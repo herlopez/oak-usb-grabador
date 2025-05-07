@@ -162,6 +162,8 @@ with dai.Device(pipeline) as device:
     # esperar_hasta_proximo_multiplo(MINUTO_MULTIPLO)
 
     ultimo_minuto_segmento = None  # Al inicio del script, fuera del while True
+    timestamp_inicio = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+
 
     while True:
         manage_disk_usage(VIDEO_DIR, MAX_USAGE_BYTES)
