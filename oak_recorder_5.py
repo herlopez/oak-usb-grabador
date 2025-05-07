@@ -326,11 +326,11 @@ with dai.Device(pipeline) as device:
                     y2 = int(detection.ymax * current_frame_1080.shape[0])
 
                     # Dibuja el bounding box y la etiqueta
-                    if detection.label == 0:
-                        color = (0, 255, 0)  # Verde para personas
-                        label_text = "Persona"
-                        cv2.rectangle(current_frame_1080, (x1, y1), (x2, y2), color, 2)
-                        cv2.putText(current_frame_1080, label_text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
+                    # if detection.label == 0:
+                    #     color = (0, 255, 0)  # Verde para personas
+                    #     label_text = "Persona"
+                    #     cv2.rectangle(current_frame_1080, (x1, y1), (x2, y2), color, 2)
+                    #     cv2.putText(current_frame_1080, label_text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
                     # else:
                     #     color = (0, 0, 255)  # Rojo para otros objetos
                     #     label_text = f"Obj {detection.label}"
@@ -341,6 +341,11 @@ with dai.Device(pipeline) as device:
                     if detection.label == 0:
                         # Persona: cuenta para ROIs y estadísticas
                         person_count_this_frame += 1
+
+                        color = (0, 255, 0)  # Verde para personas
+                        label_text = "Persona"
+                        cv2.rectangle(current_frame_1080, (x1, y1), (x2, y2), color, 2)
+                        cv2.putText(current_frame_1080, label_text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
 
                         # Calcular centro en RGB
                         cx_rgb = int((x1 + x2) / 2)
