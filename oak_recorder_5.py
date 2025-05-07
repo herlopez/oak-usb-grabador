@@ -342,10 +342,10 @@ with dai.Device(pipeline) as device:
                         # Persona: cuenta para ROIs y estadísticas
                         person_count_this_frame += 1
 
-                        color = (0, 255, 0)  # Verde para personas
-                        label_text = "Persona"
-                        cv2.rectangle(current_frame_1080, (x1, y1), (x2, y2), color, 2)
-                        cv2.putText(current_frame_1080, label_text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
+                        # color = (0, 255, 0)  # Verde para personas
+                        # label_text = "Persona"
+                        # cv2.rectangle(current_frame_1080, (x1, y1), (x2, y2), color, 2)
+                        # cv2.putText(current_frame_1080, label_text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
 
                         # Calcular centro en RGB
                         cx_rgb = int((x1 + x2) / 2)
