@@ -166,6 +166,11 @@ with dai.Device(pipeline) as device:
     ultimo_minuto_segmento = None  # Al inicio del script, fuera del while True
     timestamp_inicio = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
 
+    day_folder = now.strftime("%Y%m%d")
+    hour_folder = now.strftime("%H")
+    output_dir = os.path.join(VIDEO_DIR, day_folder, hour_folder)
+    os.makedirs(output_dir, exist_ok=True)
+    
     # CSV setup en la carpeta del día (una sola fila por segmento)
     csv_path = os.path.join(VIDEO_DIR, day_folder, f"{day_folder}_stats.csv")
     new_csv = not os.path.exists(csv_path)
@@ -188,6 +193,12 @@ with dai.Device(pipeline) as device:
     while True:
         manage_disk_usage(VIDEO_DIR, MAX_USAGE_BYTES)
 
+        day_folder = now.strftime("%Y%m%d")
+        hour_folder = now.strftime("%H")
+        output_dir = os.path.join(VIDEO_DIR, day_folder, hour_folder)
+        os.makedirs(output_dir, exist_ok=True)
+
+
         now = datetime.now()
         while ultimo_minuto_segmento == now.minute:
             # Ya grabamos este minuto, espera al próximo
@@ -195,10 +206,7 @@ with dai.Device(pipeline) as device:
             now = datetime.now()
         ultimo_minuto_segmento = now.minute
 
-        day_folder = now.strftime("%Y%m%d")
-        hour_folder = now.strftime("%H")
-        output_dir = os.path.join(VIDEO_DIR, day_folder, hour_folder)
-        os.makedirs(output_dir, exist_ok=True)
+
 
 
 
