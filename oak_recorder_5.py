@@ -156,7 +156,7 @@ segment_duration = 60 * MINUTO_MULTIPLO
 # --- Ventana temporal/cooldown para evento hinge ---
 hinge_detection_times = deque(maxlen=30)
 last_hinge_event_time = 0
-
+now = datetime.now()
 current_day = now.strftime("%Y%m%d")
 
 with dai.Device(pipeline) as device:
