@@ -159,6 +159,19 @@ last_hinge_event_time = 0
 now = datetime.now()
 current_day = now.strftime("%Y%m%d")
 
+day_folder = now.strftime("%Y%m%d")
+csv_path = os.path.join(VIDEO_DIR, day_folder, f"{day_folder}_stats.csv")
+os.makedirs(os.path.join(VIDEO_DIR, day_folder), exist_ok=True)
+new_csv = not os.path.exists(csv_path)
+csv_file = open(csv_path, "a", newline="")
+csv_writer = csv.writer(csv_file)
+if new_csv:
+    csv_writer.writerow([
+        "Fecha", "Hora", "Minuto", "%ROI_Left", "%ROI_Center", "%ROI_Right", "%Fuera_ROI", "Qty.Personas",
+        "VideoFile", "Script", "objeto_hinge", "Timestamp_Fin", "Timestamp_Inicio", "Event",
+        "DistProm_Left", "DistProm_Center", "DistProm_Right"
+    ])
+
 with dai.Device(pipeline) as device:
     cam_queue = device.getOutputQueue("cam", maxSize=4, blocking=False)         # 1080p original
     detections_queue = device.getOutputQueue("detections", maxSize=4, blocking=False)
