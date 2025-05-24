@@ -8,7 +8,7 @@ import time
 import shutil
 
 # CONFIGURACIÓN
-BASE_OUTPUT_DIR = "/media/hlopez/76E8-CACF1/video"
+BASE_OUTPUT_DIR = "/home/hlopez/Videos"
 SEGMENT_DURATION_MS = 300000  # 10 minuto
 MIN_DISK_FREE_GB = 5          # Espacio mínimo libre en GB para seguir grabando
 REINTENTOS_GRABACION = 3      # Número de reintentos si falla grabación
