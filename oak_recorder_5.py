@@ -172,6 +172,18 @@ if new_csv:
         "DistProm_Left", "DistProm_Center", "DistProm_Right"
     ])
 
+
+# Esperar hasta que se detecte un dispositivo
+max_retries = 10
+for i in range(max_retries):
+    devices = dai.Device.getAllConnectedDevices()
+    if len(devices) > 0:
+        break
+    print(f"No OAK device found. Retry {i+1}/{max_retries}")
+    time.sleep(2)
+else:
+    raise RuntimeError("No OAK device found after multiple attempts.")
+
 with dai.Device(pipeline) as device:
     cam_queue = device.getOutputQueue("cam", maxSize=4, blocking=False)         # 1080p original
     detections_queue = device.getOutputQueue("detections", maxSize=4, blocking=False)
