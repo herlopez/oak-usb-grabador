@@ -164,8 +164,8 @@ csv_file = open(csv_path, "a", newline="")
 csv_writer = csv.writer(csv_file)
 if new_csv:
     csv_writer.writerow([
-        "Fecha", "Hora", "Minuto", "%ROI_Left", "%ROI_Center", "%ROI_Right", "%Fuera_ROI", "Ocuppancy AVG", "Ocuppancy MAX",
-        "VideoFile", "Script", "Timestamp_Fin", "Timestamp_Inicio", "Event"
+        "Date", "Time", "ROI_Left", "ROI_Center", "ROI_Right", "ROI_Out", "Ocuppancy_AVG", "Ocuppancy_MAX",
+        "VideoFile", "Script", "Event"
     ])
 
 
@@ -202,15 +202,15 @@ with dai.Device(pipeline) as device:
         csv_writer = csv.writer(csv_file)
         if new_csv:
             csv_writer.writerow([
-                "Fecha", "Hora", "Minuto", "%ROI_Left", "%ROI_Center", "%ROI_Right", "%Fuera_ROI", "Ocuppancy AVG", "Ocuppancy MAX",
-                "VideoFile", "Script", "Timestamp_Fin", "Timestamp_Inicio", "Event"
+                "Date", "Time", "ROI_Left", "ROI_Center", "ROI_Right", "ROI_Out", "Ocuppancy_AVG", "Ocuppancy_MAX",
+                "VideoFile", "Script", "Event"            
             ])
         current_day = day_folder    
     
     # Registro de arranque del programa
-    timestamp_inicio_programa = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+    timestamp_1 = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
     csv_writer.writerow([
-        "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", script_name, "-", timestamp_inicio_programa, "Start"
+        timestamp_1.split(" ")[0], timestamp_1.split(" ")[1], "-", "-", "-", "-", "-", "-", "-", script_name, "Start"
     ])
     csv_file.flush()
 
@@ -279,11 +279,9 @@ with dai.Device(pipeline) as device:
 
         last_frame_1080 = None
 
-        now = datetime.now()
-        timestamp_inicio = now.strftime('%Y-%m-%d %H:%M:%S.%f')
-        fecha_log = now.strftime('%Y-%m-%d')
-        hora_log = now.strftime('%H')
-        minuto_log = now.strftime('%M')
+        # Timestamp para el final del segmento
+        timestamp_2 = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+
         minuto_inicio = now.minute
         try:
             while True:
@@ -416,13 +414,10 @@ with dai.Device(pipeline) as device:
             avg_personas = int(np.ceil(np.mean(person_counts))) if person_counts else 0
             max_personas = int(np.max(person_counts)) if person_counts else 0
 
-
-
-            timestamp_completo = now.strftime('%Y-%m-%d %H:%M:%S.%f')
             csv_writer.writerow([
-                fecha_log, hora_log, minuto_log,
+                timestamp_2.split(" ")[0], timestamp_2.split(" ")[1],
                 f"{pct_left:.1f}", f"{pct_center:.1f}", f"{pct_right:.1f}", f"{pct_out_roi:.1f}", avg_personas, max_personas,
-                filename, script_name, timestamp_completo, timestamp_inicio, "Detection"
+                filename, script_name, "Detection"
             ])
             print(
                 f"%Left={pct_left:.1f} %Center={pct_center:.1f} %Right={pct_right:.1f} "
