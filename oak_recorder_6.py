@@ -306,7 +306,7 @@ with dai.Device(pipeline) as device:
                 roi_right_present = False
                 person_count_this_frame = 0
 
-                # --- Procesar detecciones y calcular distancias ---
+                # --- Procesar detecciones
                 for detection in current_detections.detections:
                     x1 = int(detection.xmin * current_frame_1080.shape[1])
                     y1 = int(detection.ymin * current_frame_1080.shape[0])
@@ -350,7 +350,16 @@ with dai.Device(pipeline) as device:
                         cv2.circle(current_frame_1080, (cx, cy), 5, color, -1)
                         cv2.putText(current_frame_1080, label_text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
 
-                        
+                # Supón que frame_person_count_total es el número de personas detectadas en este frame
+                cv2.putText(
+                    current_frame_1080,
+                    f"Qty: {person_count_this_frame}",
+                    (30, 40),  # posición (x, y)
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    1.2,        # tamaño de fuente
+                    (0, 255, 255),  # color (amarillo)
+                    3           # grosor
+                )       
 
                 # Estadísticas de personas y ROIs
                 person_counts.append(person_count_this_frame)
