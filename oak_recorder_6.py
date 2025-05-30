@@ -244,15 +244,11 @@ with dai.Device(pipeline) as device:
         frame_416 = in_manip.getCvFrame()   # 416x416 del manip
         depth_frame = in_depth.getFrame()   # Profundidad en mm
 
-        # Guardar imagen original 1080p
-        img_dir = os.path.join(output_dir, "img")
-        os.makedirs(img_dir, exist_ok=True)
-        img_original_path = os.path.join(img_dir, filename.replace('.mp4', '_1080p.jpg'))
-        cv2.imwrite(img_original_path, frame_1080)
-
-        # Guardar imagen original 416x416
-        img_416_path = os.path.join(img_dir, filename.replace('.mp4', '_416.jpg'))
-        cv2.imwrite(img_416_path, frame_416)
+        # # Guardar imagen original 1080p
+        # img_dir = os.path.join(output_dir, "img")
+        # os.makedirs(img_dir, exist_ok=True)
+        # img_original_path = os.path.join(img_dir, filename.replace('.mp4', '_1080p.jpg'))
+        # cv2.imwrite(img_original_path, frame_1080)
 
         # 1080p con ROIs
         frame_1080_roi = frame_1080.copy()
@@ -265,16 +261,16 @@ with dai.Device(pipeline) as device:
         img_1080_roi_path = os.path.join(img_dir, filename.replace('.mp4', '_1080p_roi.jpg'))
         cv2.imwrite(img_1080_roi_path, frame_1080_roi)
 
-        # 416x416 con ROIs
-        frame_416_roi = frame_416.copy()
-        roi_left_416 = escalar_roi(roi_left_orig, frame_416.shape, (original_width, original_height))
-        roi_center_416 = escalar_roi(roi_center_orig, frame_416.shape, (original_width, original_height))
-        roi_right_416 = escalar_roi(roi_right_orig, frame_416.shape, (original_width, original_height))
-        cv2.rectangle(frame_416_roi, (roi_left_416[0], roi_left_416[1]), (roi_left_416[0]+roi_left_416[2], roi_left_416[1]+roi_left_416[3]), (255,0,0), 2)
-        cv2.rectangle(frame_416_roi, (roi_center_416[0], roi_center_416[1]), (roi_center_416[0]+roi_center_416[2], roi_center_416[1]+roi_center_416[3]), (0,255,0), 2)
-        cv2.rectangle(frame_416_roi, (roi_right_416[0], roi_right_416[1]), (roi_right_416[0]+roi_right_416[2], roi_right_416[1]+roi_right_416[3]), (0,0,255), 2)
-        img_416_roi_path = os.path.join(img_dir, filename.replace('.mp4', '_416_roi.jpg'))
-        cv2.imwrite(img_416_roi_path, frame_416_roi)
+        # # 416x416 con ROIs
+        # frame_416_roi = frame_416.copy()
+        # roi_left_416 = escalar_roi(roi_left_orig, frame_416.shape, (original_width, original_height))
+        # roi_center_416 = escalar_roi(roi_center_orig, frame_416.shape, (original_width, original_height))
+        # roi_right_416 = escalar_roi(roi_right_orig, frame_416.shape, (original_width, original_height))
+        # cv2.rectangle(frame_416_roi, (roi_left_416[0], roi_left_416[1]), (roi_left_416[0]+roi_left_416[2], roi_left_416[1]+roi_left_416[3]), (255,0,0), 2)
+        # cv2.rectangle(frame_416_roi, (roi_center_416[0], roi_center_416[1]), (roi_center_416[0]+roi_center_416[2], roi_center_416[1]+roi_center_416[3]), (0,255,0), 2)
+        # cv2.rectangle(frame_416_roi, (roi_right_416[0], roi_right_416[1]), (roi_right_416[0]+roi_right_416[2], roi_right_416[1]+roi_right_416[3]), (0,0,255), 2)
+        # img_416_roi_path = os.path.join(img_dir, filename.replace('.mp4', '_416_roi.jpg'))
+        # cv2.imwrite(img_416_roi_path, frame_416_roi)
 
         frame_height, frame_width = frame_1080.shape[:2]
 
@@ -301,11 +297,6 @@ with dai.Device(pipeline) as device:
 
         last_frame_1080 = None
         last_frame_416 = None
-
-        # Para distancias promedio por ROI
-        dist_left = []
-        dist_center = []
-        dist_right = []
 
         now = datetime.now()
         timestamp_inicio = now.strftime('%Y-%m-%d %H:%M:%S.%f')
@@ -347,89 +338,31 @@ with dai.Device(pipeline) as device:
                     x2 = int(detection.xmax * current_frame_1080.shape[1])
                     y2 = int(detection.ymax * current_frame_1080.shape[0])
 
-                    # Dibuja el bounding box y la etiqueta
-                    # if detection.label == 0:
-                    #     color = (0, 255, 0)  # Verde para personas
-                    #     label_text = "Persona"
-                    #     cv2.rectangle(current_frame_1080, (x1, y1), (x2, y2), color, 2)
-                    #     cv2.putText(current_frame_1080, label_text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
-                    # else:
-                    #     color = (0, 0, 255)  # Rojo para otros objetos
-                    #     label_text = f"Obj {detection.label}"
-
-                    # cv2.rectangle(current_frame_1080, (x1, y1), (x2, y2), color, 2)
-                    # cv2.putText(current_frame_1080, label_text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
-
                     if detection.label == 0:
                         # Persona: cuenta para ROIs y estadísticas
                         person_count_this_frame += 1
 
                         color = (0, 255, 0)  # Verde para personas
                         label_text = "Persona"
-                        # cv2.rectangle(current_frame_1080, (x1, y1), (x2, y2), color, 2)
-                        # cv2.putText(current_frame_1080, label_text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
+                        cv2.rectangle(current_frame_1080, (x1, y1), (x2, y2), color, 2)
+                        cv2.putText(current_frame_1080, label_text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
 
                         # Calcular centro en RGB
                         cx_rgb = int((x1 + x2) / 2)
                         cy_rgb = int((y1 + y2) / 2)
 
-                        # Reescalar a profundidad
-                        h_rgb, w_rgb = current_frame_1080.shape[:2]
-                        h_depth, w_depth = current_depth_frame.shape[:2]
-                        cx_depth = int(cx_rgb * w_depth / w_rgb)
-                        cy_depth = int(cy_rgb * h_depth / h_rgb)
-
-                        # Tamaño del área a promediar (por ejemplo, 5x5 píxeles)
-                        area = 2  # 2 píxeles a cada lado del centro (total 5x5)
-                        vals = []
-                        for dx in range(-area, area+1):
-                            for dy in range(-area, area+1):
-                                x = cx_depth + dx
-                                y = cy_depth + dy
-                                if 0 <= x < w_depth and 0 <= y < h_depth:
-                                    d = current_depth_frame[y, x]
-                                    if 500 < d < 20000:  # Solo valores entre 2m y 15m
-                                        vals.append(d)
-                        if vals:
-                            # print(f"Profundidades válidas: {vals}")  # <-- Depuración
-                            distance_mm = np.median(vals)  # O usa np.mean(vals)
-                            distance_m = distance_mm / 1000.0
-                        else:
-                            # print("Sin valores válidos de profundidad para esta persona")
-                            distance_m = 0
 
                         # Dibuja el centro para depuración visual
-                        # cv2.circle(current_frame_1080, (cx_rgb, cy_rgb), 5, (0,255,255), -1)
-                        # cv2.putText(current_frame_1080, f"{distance_m:.1f}m", (cx_rgb, cy_rgb-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,255), 1)
+                        cv2.circle(current_frame_1080, (cx_rgb, cy_rgb), 5, (0,255,255), -1)
 
-
-
-                        # if roi_left[0] <= cx < roi_left[0] + roi_left[2] and roi_left[1] <= cy < roi_left[1] + roi_left[3]:
-                        #     roi_left_present = True
-                        #     if distance_m > 0:
-                        #         dist_left.append(distance_m)
-                        # elif roi_center[0] <= cx < roi_center[0] + roi_center[2] and roi_center[1] <= cy < roi_center[1] + roi_center[3]:
-                        #     roi_center_present = True
-                        #     if distance_m > 0:
-                        #         dist_center.append(distance_m)
-                        # elif roi_right[0] <= cx < roi_right[0] + roi_right[2] and roi_right[1] <= cy < roi_right[1] + roi_right[3]:
-                        #     roi_right_present = True
-                        #     if distance_m > 0:
-                        #         dist_right.append(distance_m)
 
                         # Permite que una persona cuente para varios ROIs si corresponde
                         if roi_left[0] <= cx_rgb < roi_left[0] + roi_left[2] and roi_left[1] <= cy_rgb < roi_left[1] + roi_left[3]:
                             roi_left_present = True
-                            if distance_m > 0:
-                                dist_left.append(distance_m)
                         elif roi_center[0] <= cx_rgb < roi_center[0] + roi_center[2] and roi_center[1] <= cy_rgb < roi_center[1] + roi_center[3]:
                             roi_center_present = True
-                            if distance_m > 0:
-                                dist_center.append(distance_m)
                         elif roi_right[0] <= cx_rgb < roi_right[0] + roi_right[2] and roi_right[1] <= cy_rgb < roi_right[1] + roi_right[3]:
                             roi_right_present = True
-                            if distance_m > 0:
-                                dist_right.append(distance_m)
 
 
                 # Estadísticas de personas y ROIs
