@@ -73,7 +73,6 @@ def escalar_roi(roi, shape, orig_shape):
 roi_left_orig   = (100, 500, 350, 250)
 roi_center_orig = (880, 400, 130, 150)
 roi_right_orig  = (1200, 250, 350, 300)
-roi_hinge_orig  = (1400, 380, 500, 200)
 original_width = 1920
 original_height = 1080
 
@@ -156,9 +155,7 @@ MINUTO_MULTIPLO = 1  # Cambia este valor para grabar cada X minutos
 fps = 10
 segment_duration = 60 * MINUTO_MULTIPLO
 
-# --- Ventana temporal/cooldown para evento hinge ---
-hinge_detection_times = deque(maxlen=30)
-last_hinge_event_time = 0
+# --- Configuración de directorios y CSV ---
 now = datetime.now()
 current_day = now.strftime("%Y%m%d")
 
@@ -262,11 +259,9 @@ with dai.Device(pipeline) as device:
         roi_left = escalar_roi(roi_left_orig, frame_1080.shape, (original_width, original_height))
         roi_center = escalar_roi(roi_center_orig, frame_1080.shape, (original_width, original_height))
         roi_right = escalar_roi(roi_right_orig, frame_1080.shape, (original_width, original_height))
-        roi_hinge_1080 = escalar_roi(roi_hinge_orig, frame_1080.shape, (original_width, original_height))
         cv2.rectangle(frame_1080_roi, (roi_left[0], roi_left[1]), (roi_left[0]+roi_left[2], roi_left[1]+roi_left[3]), (255,0,0), 2)
         cv2.rectangle(frame_1080_roi, (roi_center[0], roi_center[1]), (roi_center[0]+roi_center[2], roi_center[1]+roi_center[3]), (0,255,0), 2)
         cv2.rectangle(frame_1080_roi, (roi_right[0], roi_right[1]), (roi_right[0]+roi_right[2], roi_right[1]+roi_right[3]), (0,0,255), 2)
-        cv2.rectangle(frame_1080_roi, (roi_hinge_1080[0], roi_hinge_1080[1]), (roi_hinge_1080[0]+roi_hinge_1080[2], roi_hinge_1080[1]+roi_hinge_1080[3]), (0,128,255), 2)
         img_1080_roi_path = os.path.join(img_dir, filename.replace('.mp4', '_1080p_roi.jpg'))
         cv2.imwrite(img_1080_roi_path, frame_1080_roi)
 
@@ -275,11 +270,9 @@ with dai.Device(pipeline) as device:
         roi_left_416 = escalar_roi(roi_left_orig, frame_416.shape, (original_width, original_height))
         roi_center_416 = escalar_roi(roi_center_orig, frame_416.shape, (original_width, original_height))
         roi_right_416 = escalar_roi(roi_right_orig, frame_416.shape, (original_width, original_height))
-        roi_hinge_416 = escalar_roi(roi_hinge_orig, frame_416.shape, (original_width, original_height))
         cv2.rectangle(frame_416_roi, (roi_left_416[0], roi_left_416[1]), (roi_left_416[0]+roi_left_416[2], roi_left_416[1]+roi_left_416[3]), (255,0,0), 2)
         cv2.rectangle(frame_416_roi, (roi_center_416[0], roi_center_416[1]), (roi_center_416[0]+roi_center_416[2], roi_center_416[1]+roi_center_416[3]), (0,255,0), 2)
         cv2.rectangle(frame_416_roi, (roi_right_416[0], roi_right_416[1]), (roi_right_416[0]+roi_right_416[2], roi_right_416[1]+roi_right_416[3]), (0,0,255), 2)
-        cv2.rectangle(frame_416_roi, (roi_hinge_416[0], roi_hinge_416[1]), (roi_hinge_416[0]+roi_hinge_416[2], roi_hinge_416[1]+roi_hinge_416[3]), (0,128,255), 2)
         img_416_roi_path = os.path.join(img_dir, filename.replace('.mp4', '_416_roi.jpg'))
         cv2.imwrite(img_416_roi_path, frame_416_roi)
 
@@ -305,8 +298,6 @@ with dai.Device(pipeline) as device:
         roi_right_frames = 0
         person_counts = []
         out_roi_frames = 0
-        objeto_hinge_count = 0
-        objeto_hinge_presente_anterior = False
 
         last_frame_1080 = None
         last_frame_416 = None
