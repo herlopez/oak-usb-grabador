@@ -170,7 +170,7 @@ csv_file = open(csv_path, "a", newline="")
 csv_writer = csv.writer(csv_file)
 if new_csv:
     csv_writer.writerow([
-        "Fecha", "Hora", "Minuto", "%ROI_Left", "%ROI_Center", "%ROI_Right", "%Fuera_ROI", "Qty.Personas",
+        "Fecha", "Hora", "Minuto", "%ROI_Left", "%ROI_Center", "%ROI_Right", "%Fuera_ROI", "Ocuppancy AVG", "Ocuppancy MAX",
         "VideoFile", "Script", "objeto_hinge", "Timestamp_Fin", "Timestamp_Inicio", "Event",
         "DistProm_Left", "DistProm_Center", "DistProm_Right"
     ])
@@ -210,7 +210,7 @@ with dai.Device(pipeline) as device:
         csv_writer = csv.writer(csv_file)
         if new_csv:
             csv_writer.writerow([
-                "Fecha", "Hora", "Minuto", "%ROI_Left", "%ROI_Center", "%ROI_Right", "%Fuera_ROI", "Qty.Personas",
+                "Fecha", "Hora", "Minuto", "%ROI_Left", "%ROI_Center", "%ROI_Right", "%Fuera_ROI", "Ocuppancy AVG", "Ocuppancy MAX",
                 "VideoFile", "Script", "objeto_hinge", "Timestamp_Fin", "Timestamp_Inicio", "Event",
                 "DistProm_Left", "DistProm_Center", "DistProm_Right"
             ])
@@ -219,7 +219,7 @@ with dai.Device(pipeline) as device:
     # Registro de arranque del programa
     timestamp_inicio_programa = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
     csv_writer.writerow([
-        "-", "-", "-", "-", "-", "-", "-", "-", "-", script_name, "-", "-", timestamp_inicio_programa, "Start", "-", "-", "-"
+        "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", script_name, "-", "-", timestamp_inicio_programa, "Start", "-", "-", "-"
     ])
     csv_file.flush()
 
@@ -559,6 +559,8 @@ with dai.Device(pipeline) as device:
             pct_right = 100 * roi_right_frames / frames_in_segment if frames_in_segment else 0
             pct_out_roi = 100 * out_roi_frames / frames_in_segment if frames_in_segment else 0
             avg_personas = int(np.ceil(np.mean(person_counts))) if person_counts else 0
+            #calcular el maximo de personas en el segmento
+            max_personas = int(np.max(person_counts)) if person_counts else 0
 
             avg_dist_left = np.mean(dist_left) if dist_left else 0
             avg_dist_center = np.mean(dist_center) if dist_center else 0
@@ -571,7 +573,7 @@ with dai.Device(pipeline) as device:
             timestamp_completo = now.strftime('%Y-%m-%d %H:%M:%S.%f')
             csv_writer.writerow([
                 fecha, hora, minuto,
-                f"{pct_left:.1f}", f"{pct_center:.1f}", f"{pct_right:.1f}", f"{pct_out_roi:.1f}", avg_personas,
+                f"{pct_left:.1f}", f"{pct_center:.1f}", f"{pct_right:.1f}", f"{pct_out_roi:.1f}", avg_personas, max_personas,
                 filename, script_name, objeto_hinge_count, timestamp_completo, timestamp_inicio, "Detection",
                 f"{avg_dist_left:.2f}", f"{avg_dist_center:.2f}", f"{avg_dist_right:.2f}"
             ])
