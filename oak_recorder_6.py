@@ -171,7 +171,7 @@ csv_writer = csv.writer(csv_file)
 if new_csv:
     csv_writer.writerow([
         "Fecha", "Hora", "Minuto", "%ROI_Left", "%ROI_Center", "%ROI_Right", "%Fuera_ROI", "Ocuppancy AVG", "Ocuppancy MAX",
-        "VideoFile", "Script", "objeto_hinge", "Timestamp_Fin", "Timestamp_Inicio", "Event"
+        "VideoFile", "Script", "Timestamp_Fin", "Timestamp_Inicio", "Event"
     ])
 
 
@@ -210,14 +210,14 @@ with dai.Device(pipeline) as device:
         if new_csv:
             csv_writer.writerow([
                 "Fecha", "Hora", "Minuto", "%ROI_Left", "%ROI_Center", "%ROI_Right", "%Fuera_ROI", "Ocuppancy AVG", "Ocuppancy MAX",
-                "VideoFile", "Script", "objeto_hinge", "Timestamp_Fin", "Timestamp_Inicio", "Event"
+                "VideoFile", "Script", "Timestamp_Fin", "Timestamp_Inicio", "Event"
             ])
         current_day = day_folder    
     
     # Registro de arranque del programa
     timestamp_inicio_programa = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
     csv_writer.writerow([
-        "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", script_name, "-", "-", timestamp_inicio_programa, "Start"
+        "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", script_name, "-", timestamp_inicio_programa, "Start"
     ])
     csv_file.flush()
 
@@ -339,12 +339,7 @@ with dai.Device(pipeline) as device:
                     current_frame_416 = in_manip.getCvFrame()
                     current_depth_frame = in_depth.getFrame()
 
-                # --- Detección y estadísticas de personas y objeto_hinge ---
-                roi_hinge_scaled = escalar_roi(roi_hinge_orig, current_frame_1080.shape, (original_width, original_height))
-                roi_hinge_area = roi_hinge_scaled[2] * roi_hinge_scaled[3]
-                objeto_hinge_presente = False
-                hinge_bbox = None
-
+                # --- Detección y estadísticas de personas ---
                 roi_left = escalar_roi(roi_left_orig, current_frame_1080.shape, (original_width, original_height))
                 roi_center = escalar_roi(roi_center_orig, current_frame_1080.shape, (original_width, original_height))
                 roi_right = escalar_roi(roi_right_orig, current_frame_1080.shape, (original_width, original_height))
@@ -445,72 +440,6 @@ with dai.Device(pipeline) as device:
                             if distance_m > 0:
                                 dist_right.append(distance_m)
 
-                    else:
-                        # Objeto NO persona: cuenta para objeto_hinge
-                        inter_x1 = max(x1, roi_hinge_scaled[0])
-                        inter_y1 = max(y1, roi_hinge_scaled[1])
-                        inter_x2 = min(x2, roi_hinge_scaled[0] + roi_hinge_scaled[2])
-                        inter_y2 = min(y2, roi_hinge_scaled[1] + roi_hinge_scaled[3])
-                        inter_w = max(0, inter_x2 - inter_x1)
-                        inter_h = max(0, inter_y2 - inter_y1)
-                        inter_area = inter_w * inter_h
-                        if roi_hinge_area > 0 and (inter_area / roi_hinge_area) > 0.2:
-                            objeto_hinge_presente = True
-                            hinge_bbox = (x1, y1, x2, y2)
-
-                # --- Detección por figura y contraste en el ROI del hinge (como en PC) ---
-                HINGE_BRIGHTNESS_THRESHOLD = 150
-                hinge_roi = current_frame_1080[roi_hinge_scaled[1]:roi_hinge_scaled[1]+roi_hinge_scaled[3],
-                                               roi_hinge_scaled[0]:roi_hinge_scaled[0]+roi_hinge_scaled[2]]
-                hinge_gray = cv2.cvtColor(hinge_roi, cv2.COLOR_BGR2GRAY)
-                _, hinge_bin = cv2.threshold(hinge_gray, HINGE_BRIGHTNESS_THRESHOLD, 255, cv2.THRESH_BINARY)
-                contours, _ = cv2.findContours(hinge_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-                max_area = 0
-                max_cnt = None
-                for cnt in contours:
-                    area = cv2.contourArea(cnt)
-                    if area > max_area:
-                        max_area = area
-                        max_cnt = cnt
-
-                hinge_detected_shape = False
-                if max_cnt is not None and max_area > 0.01 * hinge_bin.shape[0] * hinge_bin.shape[1]:
-                    epsilon = 0.05 * cv2.arcLength(max_cnt, True)
-                    approx = cv2.approxPolyDP(max_cnt, epsilon, True)
-                    if len(approx) >= 4:
-                        mask = np.zeros_like(hinge_gray)
-                        cv2.drawContours(mask, [approx], -1, 255, -1)
-                        mean_in = cv2.mean(hinge_gray, mask=mask)[0]
-                        mean_out = cv2.mean(hinge_gray, mask=cv2.bitwise_not(mask))[0]
-                        if abs(mean_in - mean_out) > 30:
-                            hinge_detected_shape = True
-                            x, y, w, h = cv2.boundingRect(approx)
-                            x1 = roi_hinge_scaled[0] + x
-                            y1 = roi_hinge_scaled[1] + y
-                            x2 = x1 + w
-                            y2 = y1 + h
-                            hinge_bbox = (x1, y1, x2, y2)
-                            cv2.rectangle(current_frame_1080, (x1, y1), (x2, y2), (255, 0, 255), 2)
-
-                # --- Combina ambos métodos ---
-                objeto_hinge_presente = objeto_hinge_presente or hinge_detected_shape
-
-                # --- Ventana temporal/cooldown para evento hinge ---
-                now_time = time.time()
-                if objeto_hinge_presente:
-                    hinge_detection_times.append(now_time)
-                detections_last_5s = [t for t in hinge_detection_times if now_time - t <= 5]
-                if len(detections_last_5s) >= 5 and (now_time - last_hinge_event_time > 5):
-                    objeto_hinge_count += 1
-                    last_hinge_event_time = now_time
-                    print(f"[{datetime.now().strftime('%H:%M:%S')}] Event HINGE VERDADERO detected! (ID: {objeto_hinge_count})")
-                    hinge_detection_times.clear()
-
-                # Dibuja el bounding box del hinge si hay detección
-                if objeto_hinge_presente and hinge_bbox:
-                    cv2.rectangle(current_frame_1080, (hinge_bbox[0], hinge_bbox[1]), (hinge_bbox[2], hinge_bbox[3]), (0, 0, 255), 2)
-                    cv2.putText(current_frame_1080, "HINGE", (hinge_bbox[0], hinge_bbox[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,0,255), 2)
 
                 # Estadísticas de personas y ROIs
                 person_counts.append(person_count_this_frame)
@@ -570,12 +499,12 @@ with dai.Device(pipeline) as device:
             csv_writer.writerow([
                 fecha_log, hora_log, minuto_log,
                 f"{pct_left:.1f}", f"{pct_center:.1f}", f"{pct_right:.1f}", f"{pct_out_roi:.1f}", avg_personas, max_personas,
-                filename, script_name, objeto_hinge_count, timestamp_completo, timestamp_inicio, "Detection"
+                filename, script_name, timestamp_completo, timestamp_inicio, "Detection"
             ])
             print(
                 f"%ROI_Left={pct_left:.1f} %ROI_Center={pct_center:.1f} %ROI_Right={pct_right:.1f} "
                 f"%Fuera_ROI={pct_out_roi:.1f} Personas={avg_personas} "
-                f"VideoFile={filename} objeto_hinge={objeto_hinge_count} "
+                f"VideoFile={filename} "
             )
             csv_file.flush()
 
