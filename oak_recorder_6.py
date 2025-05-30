@@ -105,15 +105,15 @@ manip.initialConfig.setFrameType(dai.ImgFrame.Type.BGR888p)
 manip.setMaxOutputFrameSize(416 * 416 * 3)
 cam_rgb.video.link(manip.inputImage)
 
-mono_left = pipeline.createMonoCamera()
-mono_right = pipeline.createMonoCamera()
-stereo = pipeline.createStereoDepth()
-mono_left.setBoardSocket(dai.CameraBoardSocket.CAM_B)
-mono_right.setBoardSocket(dai.CameraBoardSocket.CAM_C)
-mono_left.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
-mono_right.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
-mono_left.out.link(stereo.left)
-mono_right.out.link(stereo.right)
+# mono_left = pipeline.createMonoCamera()
+# mono_right = pipeline.createMonoCamera()
+# stereo = pipeline.createStereoDepth()
+# mono_left.setBoardSocket(dai.CameraBoardSocket.CAM_B)
+# mono_right.setBoardSocket(dai.CameraBoardSocket.CAM_C)
+# mono_left.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
+# mono_right.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
+# mono_left.out.link(stereo.left)
+# mono_right.out.link(stereo.right)
 
 detection_nn = pipeline.createYoloDetectionNetwork()
 
@@ -140,15 +140,12 @@ detection_nn.setAnchorMasks({
 manip.out.link(detection_nn.input)
 
 xout_nn = pipeline.createXLinkOut()
-xout_depth = pipeline.createXLinkOut()
 xout_manip = pipeline.createXLinkOut()  # Para obtener el frame 416x416
 xout_nn.setStreamName("detections")
-xout_depth.setStreamName("depth")
 xout_manip.setStreamName("manip")
 
 manip.out.link(xout_manip.input)
 detection_nn.out.link(xout_nn.input)
-stereo.depth.link(xout_depth.input)
 
 # --- Grabación segmentada ---
 MINUTO_MULTIPLO = 1  # Cambia este valor para grabar cada X minutos
