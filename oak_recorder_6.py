@@ -76,7 +76,7 @@ roi_right_orig  = (1200, 250, 350, 300)
 original_width = 1920
 original_height = 1080
 
-tracker = Sort(max_age=30, min_hits=3, iou_threshold=0.3)
+tracker = Sort(max_age=20, min_hits=3, iou_threshold=0.3)
 
 model_path = blobconverter.from_zoo(
     name="yolov5n_coco_416x416",
@@ -187,7 +187,6 @@ with dai.Device(pipeline) as device:
     cam_queue = device.getOutputQueue("cam", maxSize=4, blocking=False)         # 1080p original
     detections_queue = device.getOutputQueue("detections", maxSize=4, blocking=False)
     manip_queue = device.getOutputQueue("manip", maxSize=4, blocking=False)     # 416x416
-    depth_queue = device.getOutputQueue("depth", maxSize=4, blocking=False)     # Profundidad
 
     ultimo_minuto_segmento = None
     now = datetime.now()
@@ -238,11 +237,7 @@ with dai.Device(pipeline) as device:
         # Espera el primer frame para obtener el tamaño real
         in_cam = cam_queue.get()
         in_detections = detections_queue.get()
-        in_manip = manip_queue.get()
-        in_depth = depth_queue.get()
         frame_1080 = in_cam.getCvFrame()    # 1080p del stream original
-        frame_416 = in_manip.getCvFrame()   # 416x416 del manip
-        depth_frame = in_depth.getFrame()   # Profundidad en mm
 
         # # Guardar imagen original 1080p
         img_dir = os.path.join(output_dir, "img")
@@ -261,16 +256,6 @@ with dai.Device(pipeline) as device:
         img_1080_roi_path = os.path.join(img_dir, filename.replace('.mp4', '_1080p_roi.jpg'))
         cv2.imwrite(img_1080_roi_path, frame_1080_roi)
 
-        # # 416x416 con ROIs
-        # frame_416_roi = frame_416.copy()
-        # roi_left_416 = escalar_roi(roi_left_orig, frame_416.shape, (original_width, original_height))
-        # roi_center_416 = escalar_roi(roi_center_orig, frame_416.shape, (original_width, original_height))
-        # roi_right_416 = escalar_roi(roi_right_orig, frame_416.shape, (original_width, original_height))
-        # cv2.rectangle(frame_416_roi, (roi_left_416[0], roi_left_416[1]), (roi_left_416[0]+roi_left_416[2], roi_left_416[1]+roi_left_416[3]), (255,0,0), 2)
-        # cv2.rectangle(frame_416_roi, (roi_center_416[0], roi_center_416[1]), (roi_center_416[0]+roi_center_416[2], roi_center_416[1]+roi_center_416[3]), (0,255,0), 2)
-        # cv2.rectangle(frame_416_roi, (roi_right_416[0], roi_right_416[1]), (roi_right_416[0]+roi_right_416[2], roi_right_416[1]+roi_right_416[3]), (0,0,255), 2)
-        # img_416_roi_path = os.path.join(img_dir, filename.replace('.mp4', '_416_roi.jpg'))
-        # cv2.imwrite(img_416_roi_path, frame_416_roi)
 
         frame_height, frame_width = frame_1080.shape[:2]
 
@@ -296,7 +281,6 @@ with dai.Device(pipeline) as device:
         out_roi_frames = 0
 
         last_frame_1080 = None
-        last_frame_416 = None
 
         now = datetime.now()
         timestamp_inicio = now.strftime('%Y-%m-%d %H:%M:%S.%f')
@@ -309,17 +293,11 @@ with dai.Device(pipeline) as device:
                 if frames_in_segment == 0:
                     current_frame_1080 = frame_1080
                     current_detections = in_detections
-                    current_frame_416 = frame_416
-                    current_depth_frame = depth_frame
                 else:
                     in_cam = cam_queue.get()
                     in_detections = detections_queue.get()
-                    in_manip = manip_queue.get()
-                    in_depth = depth_queue.get()
                     current_frame_1080 = in_cam.getCvFrame()
                     current_detections = in_detections
-                    current_frame_416 = in_manip.getCvFrame()
-                    current_depth_frame = in_depth.getFrame()
 
                 # --- Detección y estadísticas de personas ---
                 roi_left = escalar_roi(roi_left_orig, current_frame_1080.shape, (original_width, original_height))
@@ -381,7 +359,6 @@ with dai.Device(pipeline) as device:
 
                 # Guarda el último frame
                 last_frame_1080 = current_frame_1080
-                last_frame_416 = current_frame_416
 
                 now = datetime.now()
                 # Corta exactamente cuando cambia el minuto y el segundo es 0
