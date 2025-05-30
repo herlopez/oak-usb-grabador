@@ -396,8 +396,8 @@ with dai.Device(pipeline) as device:
                 filename, script_name, timestamp_completo, timestamp_inicio, "Detection"
             ])
             print(
-                f"%ROI_Left={pct_left:.1f} %ROI_Center={pct_center:.1f} %ROI_Right={pct_right:.1f} "
-                f"%Fuera_ROI={pct_out_roi:.1f} Personas={avg_personas} "
+                f"%Left={pct_left:.1f} %Center={pct_center:.1f} %Right={pct_right:.1f} "
+                f"%!ROI={pct_out_roi:.1f} AVG_P={avg_personas} MAX_P={max_personas} "
                 f"VideoFile={filename} "
             )
             csv_file.flush()
