@@ -171,8 +171,7 @@ csv_writer = csv.writer(csv_file)
 if new_csv:
     csv_writer.writerow([
         "Fecha", "Hora", "Minuto", "%ROI_Left", "%ROI_Center", "%ROI_Right", "%Fuera_ROI", "Ocuppancy AVG", "Ocuppancy MAX",
-        "VideoFile", "Script", "objeto_hinge", "Timestamp_Fin", "Timestamp_Inicio", "Event",
-        "DistProm_Left", "DistProm_Center", "DistProm_Right"
+        "VideoFile", "Script", "objeto_hinge", "Timestamp_Fin", "Timestamp_Inicio", "Event"
     ])
 
 
@@ -211,15 +210,14 @@ with dai.Device(pipeline) as device:
         if new_csv:
             csv_writer.writerow([
                 "Fecha", "Hora", "Minuto", "%ROI_Left", "%ROI_Center", "%ROI_Right", "%Fuera_ROI", "Ocuppancy AVG", "Ocuppancy MAX",
-                "VideoFile", "Script", "objeto_hinge", "Timestamp_Fin", "Timestamp_Inicio", "Event",
-                "DistProm_Left", "DistProm_Center", "DistProm_Right"
+                "VideoFile", "Script", "objeto_hinge", "Timestamp_Fin", "Timestamp_Inicio", "Event"
             ])
         current_day = day_folder    
     
     # Registro de arranque del programa
     timestamp_inicio_programa = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
     csv_writer.writerow([
-        "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", script_name, "-", "-", timestamp_inicio_programa, "Start", "-", "-", "-"
+        "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", script_name, "-", "-", timestamp_inicio_programa, "Start"
     ])
     csv_file.flush()
 
@@ -318,9 +316,12 @@ with dai.Device(pipeline) as device:
         dist_center = []
         dist_right = []
 
-        timestamp_inicio = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
-        segment_start_time = time.time()    
-        minuto_inicio = datetime.now().minute
+        now = datetime.now()
+        timestamp_inicio = now.strftime('%Y-%m-%d %H:%M:%S.%f')
+        fecha_log = now.strftime('%Y-%m-%d')
+        hora_log = now.strftime('%H')
+        minuto_log = now.strftime('%M')
+        minuto_inicio = now.minute
         try:
             while True:
                 if frames_in_segment == 0:
@@ -559,29 +560,22 @@ with dai.Device(pipeline) as device:
             pct_right = 100 * roi_right_frames / frames_in_segment if frames_in_segment else 0
             pct_out_roi = 100 * out_roi_frames / frames_in_segment if frames_in_segment else 0
             avg_personas = int(np.ceil(np.mean(person_counts))) if person_counts else 0
-            #calcular el maximo de personas en el segmento
             max_personas = int(np.max(person_counts)) if person_counts else 0
 
-            avg_dist_left = np.mean(dist_left) if dist_left else 0
-            avg_dist_center = np.mean(dist_center) if dist_center else 0
-            avg_dist_right = np.mean(dist_right) if dist_right else 0
 
-            fecha = now.strftime('%Y-%m-%d')
-            hora = now.strftime('%H')
-            minuto = now.strftime('%M')
+
+
 
             timestamp_completo = now.strftime('%Y-%m-%d %H:%M:%S.%f')
             csv_writer.writerow([
-                fecha, hora, minuto,
+                fecha_log, hora_log, minuto_log,
                 f"{pct_left:.1f}", f"{pct_center:.1f}", f"{pct_right:.1f}", f"{pct_out_roi:.1f}", avg_personas, max_personas,
-                filename, script_name, objeto_hinge_count, timestamp_completo, timestamp_inicio, "Detection",
-                f"{avg_dist_left:.2f}", f"{avg_dist_center:.2f}", f"{avg_dist_right:.2f}"
+                filename, script_name, objeto_hinge_count, timestamp_completo, timestamp_inicio, "Detection"
             ])
             print(
                 f"%ROI_Left={pct_left:.1f} %ROI_Center={pct_center:.1f} %ROI_Right={pct_right:.1f} "
                 f"%Fuera_ROI={pct_out_roi:.1f} Personas={avg_personas} "
                 f"VideoFile={filename} objeto_hinge={objeto_hinge_count} "
-                f"DistProm_Left={avg_dist_left:.2f}m DistProm_Center={avg_dist_center:.2f}m DistProm_Right={avg_dist_right:.2f}m"
             )
             csv_file.flush()
 
