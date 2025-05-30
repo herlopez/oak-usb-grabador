@@ -80,7 +80,7 @@ original_height = 1080
 tracker = Sort(max_age=30, min_hits=3, iou_threshold=0.3)
 
 model_path = blobconverter.from_zoo(
-    name="yolov5s_coco_416x416",
+    name="yolov5n_coco_416x416",
     zoo_type="depthai",
     shaves=6
 )
