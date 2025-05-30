@@ -245,10 +245,10 @@ with dai.Device(pipeline) as device:
         depth_frame = in_depth.getFrame()   # Profundidad en mm
 
         # # Guardar imagen original 1080p
-        # img_dir = os.path.join(output_dir, "img")
-        # os.makedirs(img_dir, exist_ok=True)
-        # img_original_path = os.path.join(img_dir, filename.replace('.mp4', '_1080p.jpg'))
-        # cv2.imwrite(img_original_path, frame_1080)
+        img_dir = os.path.join(output_dir, "img")
+        os.makedirs(img_dir, exist_ok=True)
+        img_original_path = os.path.join(img_dir, filename.replace('.mp4', '_1080p.jpg'))
+        cv2.imwrite(img_original_path, frame_1080)
 
         # 1080p con ROIs
         frame_1080_roi = frame_1080.copy()
@@ -404,9 +404,7 @@ with dai.Device(pipeline) as device:
             if last_frame_1080 is not None:
                 img_final_1080 = os.path.join(img_dir, filename.replace('.mp4', '_1080p_last.jpg'))
                 cv2.imwrite(img_final_1080, last_frame_1080)
-            if last_frame_416 is not None:
-                img_final_416 = os.path.join(img_dir, filename.replace('.mp4', '_416_last.jpg'))
-                cv2.imwrite(img_final_416, last_frame_416)
+
             # Guardar resumen del segmento en el CSV del día
             pct_left = 100 * roi_left_frames / frames_in_segment if frames_in_segment else 0
             pct_center = 100 * roi_center_frames / frames_in_segment if frames_in_segment else 0
@@ -414,8 +412,6 @@ with dai.Device(pipeline) as device:
             pct_out_roi = 100 * out_roi_frames / frames_in_segment if frames_in_segment else 0
             avg_personas = int(np.ceil(np.mean(person_counts))) if person_counts else 0
             max_personas = int(np.max(person_counts)) if person_counts else 0
-
-
 
 
 
