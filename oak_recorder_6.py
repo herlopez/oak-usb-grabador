@@ -76,7 +76,7 @@ roi_right_orig  = (1200, 250, 350, 300)
 original_width = 1920
 original_height = 1080
 
-tracker = Sort(max_age=20, min_hits=3, iou_threshold=0.3)
+tracker = Sort(max_age=30, min_hits=3, iou_threshold=0.3)
 
 model_path = blobconverter.from_zoo(
     name="yolov5n_coco_416x416",
@@ -312,6 +312,8 @@ with dai.Device(pipeline) as device:
                     y1 = int(detection.ymin * current_frame_1080.shape[0])
                     x2 = int(detection.xmax * current_frame_1080.shape[1])
                     y2 = int(detection.ymax * current_frame_1080.shape[0])
+                    cx = int((x1 + x2) / 2)
+                    cy = int((y1 + y2) / 2)
 
                     if detection.label == 0:
                         # Persona: cuenta para ROIs y estadísticas
@@ -319,8 +321,6 @@ with dai.Device(pipeline) as device:
 
                         color = (0, 255, 0)  # Verde para personas
                         label_text = "Persona"
-                        cv2.rectangle(current_frame_1080, (x1, y1), (x2, y2), color, 2)
-                        cv2.putText(current_frame_1080, label_text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
 
                         # Calcular centro en RGB
                         cx_rgb = int((x1 + x2) / 2)
@@ -334,11 +334,23 @@ with dai.Device(pipeline) as device:
                         # Permite que una persona cuente para varios ROIs si corresponde
                         if roi_left[0] <= cx_rgb < roi_left[0] + roi_left[2] and roi_left[1] <= cy_rgb < roi_left[1] + roi_left[3]:
                             roi_left_present = True
+                            color = (255, 0, 0)  # Azul para ROI izquierdo
+                            label_text = "ROI Left"
                         elif roi_center[0] <= cx_rgb < roi_center[0] + roi_center[2] and roi_center[1] <= cy_rgb < roi_center[1] + roi_center[3]:
                             roi_center_present = True
+                            color = (0, 255, 255)  # Amarillo para ROI central
+                            label_text = "ROI Center"
                         elif roi_right[0] <= cx_rgb < roi_right[0] + roi_right[2] and roi_right[1] <= cy_rgb < roi_right[1] + roi_right[3]:
                             roi_right_present = True
+                            color = (0, 0, 255)  # Rojo para ROI derecho
+                            label_text = "ROI Right"
 
+                        # Dibuja el bounding box y el centro
+                        cv2.rectangle(current_frame_1080, (x1, y1), (x2, y2), color, 2)
+                        cv2.circle(current_frame_1080, (cx, cy), 5, color, -1)
+                        cv2.putText(current_frame_1080, label_text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
+
+                        
 
                 # Estadísticas de personas y ROIs
                 person_counts.append(person_count_this_frame)
@@ -350,6 +362,14 @@ with dai.Device(pipeline) as device:
                     roi_right_frames += 1
                 if (person_count_this_frame > 0) and not (roi_left_present or roi_center_present or roi_right_present):
                     out_roi_frames += 1
+
+
+                # Dibuja los ROIs sobre el frame
+                cv2.rectangle(frame_1080_roi, (roi_left[0], roi_left[1]), (roi_left[0]+roi_left[2], roi_left[1]+roi_left[3]), (255,0,0), 2)
+                cv2.rectangle(frame_1080_roi, (roi_center[0], roi_center[1]), (roi_center[0]+roi_center[2], roi_center[1]+roi_center[3]), (0,255,0), 2)
+                cv2.rectangle(frame_1080_roi, (roi_right[0], roi_right[1]), (roi_right[0]+roi_right[2], roi_right[1]+roi_right[3]), (0,0,255), 2)
+
+
 
                 out.write(current_frame_1080)
                 frames_in_segment += 1
