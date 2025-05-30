@@ -376,8 +376,6 @@ with dai.Device(pipeline) as device:
                 cv2.rectangle(current_frame_1080, (roi_center[0], roi_center[1]), (roi_center[0]+roi_center[2], roi_center[1]+roi_center[3]), (0,255,0), 2)
                 cv2.rectangle(current_frame_1080, (roi_right[0], roi_right[1]), (roi_right[0]+roi_right[2], roi_right[1]+roi_right[3]), (0,0,255), 2)
 
-
-
                 out.write(current_frame_1080)
                 frames_in_segment += 1
 
