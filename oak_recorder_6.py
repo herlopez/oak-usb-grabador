@@ -194,7 +194,7 @@ for i in range(max_retries):
     devices = dai.Device.getAllConnectedDevices()
     if len(devices) > 0:
         break
-    print(f"No OAK device found. Retry {i+1}/{max_retries}")
+    if DEBUGGER: print(f"No OAK device found. Retry {i+1}/{max_retries}")
     time.sleep(2)
 else:
     raise RuntimeError("No OAK device found after multiple attempts.")
@@ -270,12 +270,12 @@ with dai.Device(pipeline) as device:
         out = cv2.VideoWriter(filepath, fourcc, fps, (frame_width, frame_height))
 
         if not out.isOpened():
-            print(f"Error: No se pudo abrir el archivo de video para escritura: {filepath}")
+            if DEBUGGER: print(f"Error: No se pudo abrir el archivo de video para escritura: {filepath}")
             logging.error(f"No se pudo abrir el archivo de video para escritura: {filepath}")
             continue  # Salta este segmento
 
         start_time = time.time()
-        print(f"Grabando: {filepath}")
+        if DEBUGGER: print(f"Grabando: {filepath}")
         logging.info(f"Inicio de grabación: {filepath}")
 
         # Estadísticas acumuladas para el segmento
@@ -395,17 +395,17 @@ with dai.Device(pipeline) as device:
                 # Corta exactamente cuando cambia el minuto y el segundo es 0
                 if now.minute != minuto_inicio and now.second == 0:
                     timestamp_completo = now.strftime('%Y-%m-%d %H:%M:%S.%f')
-                    print(f"Último frame: {timestamp_completo}")
-                    print(f"Grabación de {MINUTO_MULTIPLO} minuto(s) completada.")
+                    if DEBUGGER: print(f"Último frame: {timestamp_completo}")
+                    if DEBUGGER: print(f"Grabación de {MINUTO_MULTIPLO} minuto(s) completada.")
                     logging.info(f"Fin de grabación: {filepath} | Timestamp: {timestamp_completo}")
                     break
         except KeyboardInterrupt:
-            print("Grabación interrumpida por el usuario.")
+            if DEBUGGER: print("Grabación interrumpida por el usuario.")
             logging.info("Grabación interrumpida por el usuario.")
             break
         except Exception as e:
             logging.error(f"Error durante la grabación: {e}")
-            print(f"Error durante la grabación: {e}")
+            if DEBUGGER: print(f"Error durante la grabación: {e}")
         finally:
             out.release()
             # Guardar imagen final de cada stream
@@ -426,7 +426,7 @@ with dai.Device(pipeline) as device:
                                                 filename, "DETECTION"))
             if event_id == -1:
                 logging.warning("Failed to write initialization event to the database.")                
-            print(
+            if DEBUGGER: print(
                 f"%Left={pct_left:.1f} %Center={pct_center:.1f} %Right={pct_right:.1f} "
                 f"%!ROI={pct_out_roi:.1f} AVG_P={avg_personas} MAX_P={max_personas} "
                 f"VideoFile={filename} "
