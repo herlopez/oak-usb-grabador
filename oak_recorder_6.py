@@ -212,14 +212,13 @@ with dai.Device(pipeline) as device:
     output_dir = os.path.join(VIDEO_DIR, day_folder, hour_folder)
     os.makedirs(output_dir, exist_ok=True)
     
+    ts_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
     if day_folder != current_day:
-        # Día nuevo: cierra el CSV anterior y abre uno nuevo
         event_id = sql_logger.insert_event(conn_test, TABLE_NAME, (ts_str, DEVICE_NAME, SCRIPT_NAME, "INFO", 0,0,0,0,0,0,"", "NEW DAY"))
         if event_id == -1:
             logging.warning("Failed to write initialization event to the database.")
     
     # Registro de arranque del programa
-    timestamp_1 = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
     event_id = sql_logger.insert_event(conn_test, TABLE_NAME, (ts_str, DEVICE_NAME, SCRIPT_NAME, "INFO", 0,0,0,0,0,0,"", "START"))
     if event_id == -1:
         logging.warning("Failed to write initialization event to the database.")
@@ -238,6 +237,7 @@ with dai.Device(pipeline) as device:
         output_dir = os.path.join(VIDEO_DIR, day_folder, hour_folder)
         os.makedirs(output_dir, exist_ok=True)
 
+        ts_str = now.strftime("%Y-%m-%d %H:%M:%S.%f")
         filename = now.strftime(f"output_%Y%m%d_%H%M%S.mp4")
         filepath = os.path.join(output_dir, filename)
 
@@ -421,9 +421,9 @@ with dai.Device(pipeline) as device:
             avg_count = int(np.ceil(np.mean(person_counts))) if person_counts else 0
             max_count = int(np.max(person_counts)) if person_counts else 0
 
-            event_id = sql_logger.insert_event(conn_test, TABLE_NAME, (ts_str, DEVICE_NAME, SCRIPT_NAME, "INFO", 
+            event_id = sql_logger.insert_event(conn_test, TABLE_NAME, (ts_str, DEVICE_NAME, SCRIPT_NAME, "DETECTION", 
                                                 f"{pct_left:.1f}", f"{pct_center:.1f}", f"{pct_right:.1f}", f"{pct_out_roi:.1f}", avg_count, max_count,
-                                                filename, "DETECTION"))
+                                                filename, datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")))
             if event_id == -1:
                 logging.warning("Failed to write initialization event to the database.")                
             if DEBUGGER: print(
