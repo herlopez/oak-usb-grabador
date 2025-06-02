@@ -6,6 +6,7 @@
 #  Se recomienda usar un SSD NVMe para evitar problemas de escritura.
 
 import depthai as dai
+from dotenv import load_dotenv
 import cv2
 import numpy as np
 from sort.sort import Sort
@@ -15,13 +16,21 @@ import logging
 import os
 from datetime import datetime, timedelta
 from collections import deque
+import sql_logger
 import csv
 
-script_name = os.path.basename(__file__)
+load_dotenv()
+SCRIPT_NAME = os.path.basename(__file__)
+DEVICE_NAME = os.getenv("DEVICE_NAME")
+DATABASE_FILE = os.getenv("DATABASE_FILE")
+TABLE_NAME = os.getenv("TABLE_NAME")
+
+# Archivo de log de errores
+LOGGER_LOG = os.getenv("LOGGER_LOG")
 
 # Configuración del logging
 logging.basicConfig(
-    filename='/mnt/nvme/grabador.log',
+    filename=LOGGER_LOG,
     level=logging.INFO,
     format='%(asctime)s %(levelname)s: %(message)s'
 )
@@ -159,6 +168,25 @@ current_day = now.strftime("%Y%m%d")
 day_folder = now.strftime("%Y%m%d")
 csv_path = os.path.join(VIDEO_DIR, day_folder, f"{day_folder}_stats.csv")
 os.makedirs(os.path.join(VIDEO_DIR, day_folder), exist_ok=True)
+
+# Initialize db
+ts_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+conn_test = sql_logger.create_connection(DATABASE_FILE)
+if conn_test == -1:
+    logging.error("Could not connect to the database. Logging to database will be disabled.")
+    exit(1)
+else:
+    # Reed if table exists
+    if not sql_logger.table_exists(conn_test, TABLE_NAME):
+        # Create table if it doesn't exist
+        if sql_logger.create_table(conn_test, TABLE_NAME) == -1:
+            logging.error("Could not create event_log table in the database. Logging to database will be disabled.")
+            exit(1)
+    event_id = sql_logger.insert_event(conn_test, TABLE_NAME, (ts_str, DEVICE_NAME, SCRIPT_NAME, "INFO", 0, "START"))
+    if event_id == -1:
+        logging.warning("Failed to write initialization event to the database.")
+
+
 new_csv = not os.path.exists(csv_path)
 csv_file = open(csv_path, "a", newline="")
 csv_writer = csv.writer(csv_file)
@@ -210,7 +238,7 @@ with dai.Device(pipeline) as device:
     # Registro de arranque del programa
     timestamp_1 = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
     csv_writer.writerow([
-        timestamp_1.split(" ")[0], timestamp_1.split(" ")[1], "-", "-", "-", "-", "-", "-", "-", script_name, "Start"
+        timestamp_1.split(" ")[0], timestamp_1.split(" ")[1], "-", "-", "-", "-", "-", "-", "-", SCRIPT_NAME, "Start"
     ])
     csv_file.flush()
 
@@ -415,7 +443,7 @@ with dai.Device(pipeline) as device:
             csv_writer.writerow([
                 timestamp_2.split(" ")[0], timestamp_2.split(" ")[1],
                 f"{pct_left:.1f}", f"{pct_center:.1f}", f"{pct_right:.1f}", f"{pct_out_roi:.1f}", avg_personas, max_personas,
-                filename, script_name, "Detection"
+                filename, SCRIPT_NAME, "Detection"
             ])
             print(
                 f"%Left={pct_left:.1f} %Center={pct_center:.1f} %Right={pct_right:.1f} "
