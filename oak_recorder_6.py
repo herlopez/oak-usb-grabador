@@ -421,9 +421,9 @@ with dai.Device(pipeline) as device:
             avg_count = int(np.ceil(np.mean(person_counts))) if person_counts else 0
             max_count = int(np.max(person_counts)) if person_counts else 0
 
-            event_id = sql_logger.insert_event(conn_test, TABLE_NAME, (ts_str, DEVICE_NAME, SCRIPT_NAME, "DETECTION", 
+            event_id = sql_logger.insert_event(conn_test, TABLE_NAME, datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"), DEVICE_NAME, SCRIPT_NAME, "DETECTION", 
                                                 f"{pct_left:.1f}", f"{pct_center:.1f}", f"{pct_right:.1f}", f"{pct_out_roi:.1f}", avg_count, max_count,
-                                                filename, datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")))
+                                                filename, ts_str)
             if event_id == -1:
                 logging.warning("Failed to write initialization event to the database.")                
             if DEBUGGER: print(
