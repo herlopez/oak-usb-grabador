@@ -67,7 +67,7 @@ def esperar_hasta_proximo_multiplo(minuto_multiplo):
         minutos_a_sumar = minuto_multiplo
     proximo = (now + timedelta(minutes=minutos_a_sumar)).replace(second=0, microsecond=0)
     espera = (proximo - now).total_seconds()
-    if DEBUGGER: print(f"Esperando {espera:.2f} segundos hasta el próximo múltiplo de {minuto_multiplo} minutos...")
+    if DEBUGGER: print(f"Waiting {espera:.2f} seconds until the next multiple of {minuto_multiplo} minutes...")
     time.sleep(espera)
 
 # Función para escalar ROIs
@@ -270,13 +270,13 @@ with dai.Device(pipeline) as device:
         out = cv2.VideoWriter(filepath, fourcc, fps, (frame_width, frame_height))
 
         if not out.isOpened():
-            if DEBUGGER: print(f"Error: No se pudo abrir el archivo de video para escritura: {filepath}")
-            logging.error(f"No se pudo abrir el archivo de video para escritura: {filepath}")
-            continue  # Salta este segmento
+            if DEBUGGER: print(f"Error: Can not open video file for writing: {filepath}")
+            logging.error(f"Cannot open video file for writing: {filepath}")
+            continue  # Skip this segment
 
         start_time = time.time()
-        if DEBUGGER: print(f"Grabando: {filepath}")
-        logging.info(f"Inicio de grabación: {filepath}")
+        if DEBUGGER: print(f"Recording: {filepath}")
+        logging.info(f"Start recording: {filepath}")
 
         # Estadísticas acumuladas para el segmento
         frames_in_segment = 0
@@ -395,17 +395,17 @@ with dai.Device(pipeline) as device:
                 # Corta exactamente cuando cambia el minuto y el segundo es 0
                 if now.minute != minuto_inicio and now.second == 0:
                     timestamp_completo = now.strftime('%Y-%m-%d %H:%M:%S.%f')
-                    if DEBUGGER: print(f"Último frame: {timestamp_completo}")
-                    if DEBUGGER: print(f"Grabación de {MINUTO_MULTIPLO} minuto(s) completada.")
-                    logging.info(f"Fin de grabación: {filepath} | Timestamp: {timestamp_completo}")
+                    if DEBUGGER: print(f"Last frame: {timestamp_completo}")
+                    if DEBUGGER: print(f"Recording of {MINUTO_MULTIPLO} minute(s) completed.")
+                    logging.info(f"End of recording: {filepath} | Timestamp: {timestamp_completo}")
                     break
         except KeyboardInterrupt:
-            if DEBUGGER: print("Grabación interrumpida por el usuario.")
-            logging.info("Grabación interrumpida por el usuario.")
+            if DEBUGGER: print("Recording interrupted by user.")
+            logging.info("Recording interrupted by user.")
             break
         except Exception as e:
-            logging.error(f"Error durante la grabación: {e}")
-            if DEBUGGER: print(f"Error durante la grabación: {e}")
+            logging.error(f"Error during recording: {e}")
+            if DEBUGGER: print(f"Error during recording: {e}")
         finally:
             out.release()
             # Guardar imagen final de cada stream
