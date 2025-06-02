@@ -24,6 +24,7 @@ SCRIPT_NAME = os.path.basename(__file__)
 DEVICE_NAME = os.getenv("DEVICE_NAME")
 DATABASE_FILE = os.getenv("DATABASE_FILE")
 TABLE_NAME = os.getenv("TABLE_NAME")
+DEBUGGER = os.getenv("DEBUGGER", "1").lower() in ("1", "true", "yes")
 
 # Archivo de log de errores
 LOGGER_LOG = os.getenv("LOGGER_LOG")
@@ -66,7 +67,7 @@ def esperar_hasta_proximo_multiplo(minuto_multiplo):
         minutos_a_sumar = minuto_multiplo
     proximo = (now + timedelta(minutes=minutos_a_sumar)).replace(second=0, microsecond=0)
     espera = (proximo - now).total_seconds()
-    print(f"Esperando {espera:.2f} segundos hasta el próximo múltiplo de {minuto_multiplo} minutos...")
+    if DEBUGGER: print(f"Esperando {espera:.2f} segundos hasta el próximo múltiplo de {minuto_multiplo} minutos...")
     time.sleep(espera)
 
 # Función para escalar ROIs
