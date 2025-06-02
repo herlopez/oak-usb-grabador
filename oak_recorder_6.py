@@ -397,7 +397,7 @@ with dai.Device(pipeline) as device:
                     timestamp_completo = now.strftime('%Y-%m-%d %H:%M:%S.%f')
                     if DEBUGGER: print(f"Last frame: {timestamp_completo}")
                     if DEBUGGER: print(f"Recording of {MINUTO_MULTIPLO} minute(s) completed.")
-                    logging.info(f"End of recording: {filepath} | Timestamp: {timestamp_completo}")
+                    logging.info(f"End of recording: {filepath}")
                     break
         except KeyboardInterrupt:
             if DEBUGGER: print("Recording interrupted by user.")
