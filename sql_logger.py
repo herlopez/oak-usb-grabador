@@ -49,7 +49,13 @@ def create_table(conn, table_name):
                                         device_name TEXT,
                                         script_name TEXT,
                                         event_type TEXT NOT NULL,
-                                        value REAL,
+                                        pct_left REAL,
+                                        pct_center REAL,
+                                        pct_right REAL,
+                                        pct_out_roi REAL,
+                                        avg_count REAL,
+                                        max_count REAL,
+                                        filename TEXT,
                                         message TEXT
                                     ); """
     try:

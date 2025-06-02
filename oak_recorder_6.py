@@ -418,17 +418,17 @@ with dai.Device(pipeline) as device:
             pct_center = 100 * roi_center_frames / frames_in_segment if frames_in_segment else 0
             pct_right = 100 * roi_right_frames / frames_in_segment if frames_in_segment else 0
             pct_out_roi = 100 * out_roi_frames / frames_in_segment if frames_in_segment else 0
-            avg_personas = int(np.ceil(np.mean(person_counts))) if person_counts else 0
-            max_personas = int(np.max(person_counts)) if person_counts else 0
+            avg_count = int(np.ceil(np.mean(person_counts))) if person_counts else 0
+            max_count = int(np.max(person_counts)) if person_counts else 0
 
             event_id = sql_logger.insert_event(conn_test, TABLE_NAME, (ts_str, DEVICE_NAME, SCRIPT_NAME, "INFO", 
-                                                f"{pct_left:.1f}", f"{pct_center:.1f}", f"{pct_right:.1f}", f"{pct_out_roi:.1f}", avg_personas, max_personas,
+                                                f"{pct_left:.1f}", f"{pct_center:.1f}", f"{pct_right:.1f}", f"{pct_out_roi:.1f}", avg_count, max_count,
                                                 filename, "DETECTION"))
             if event_id == -1:
                 logging.warning("Failed to write initialization event to the database.")                
             if DEBUGGER: print(
                 f"%Left={pct_left:.1f} %Center={pct_center:.1f} %Right={pct_right:.1f} "
-                f"%!ROI={pct_out_roi:.1f} AVG_P={avg_personas} MAX_P={max_personas} "
+                f"%!ROI={pct_out_roi:.1f} AVG_P={avg_count} MAX_P={max_count} "
                 f"VideoFile={filename} "
             )
     cv2.destroyAllWindows()
