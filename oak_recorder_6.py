@@ -182,19 +182,9 @@ else:
         if sql_logger.create_table(conn_test, TABLE_NAME) == -1:
             logging.error("Could not create event_log table in the database. Logging to database will be disabled.")
             exit(1)
-    event_id = sql_logger.insert_event(conn_test, TABLE_NAME, (ts_str, DEVICE_NAME, SCRIPT_NAME, "INFO", 0, "START"))
+    event_id = sql_logger.insert_event(conn_test, TABLE_NAME, (ts_str, DEVICE_NAME, SCRIPT_NAME, "INFO", 0,0,0,0,0,0,"", "START"))
     if event_id == -1:
         logging.warning("Failed to write initialization event to the database.")
-
-
-new_csv = not os.path.exists(csv_path)
-csv_file = open(csv_path, "a", newline="")
-csv_writer = csv.writer(csv_file)
-if new_csv:
-    csv_writer.writerow([
-        "Date", "Time", "ROI_Left", "ROI_Center", "ROI_Right", "ROI_Out", "Ocuppancy_AVG", "Ocuppancy_MAX",
-        "VideoFile", "Script", "Event"
-    ])
 
 
 # Esperar hasta que se detecte un dispositivo
@@ -223,24 +213,15 @@ with dai.Device(pipeline) as device:
     
     if day_folder != current_day:
         # Día nuevo: cierra el CSV anterior y abre uno nuevo
-        csv_file.close()
-        csv_path = os.path.join(VIDEO_DIR, day_folder, f"{day_folder}_stats.csv")
-        new_csv = not os.path.exists(csv_path)
-        csv_file = open(csv_path, "a", newline="")
-        csv_writer = csv.writer(csv_file)
-        if new_csv:
-            csv_writer.writerow([
-                "Date", "Time", "ROI_Left", "ROI_Center", "ROI_Right", "ROI_Out", "Ocuppancy_AVG", "Ocuppancy_MAX",
-                "VideoFile", "Script", "Event"            
-            ])
-        current_day = day_folder    
+        event_id = sql_logger.insert_event(conn_test, TABLE_NAME, (ts_str, DEVICE_NAME, SCRIPT_NAME, "INFO", 0,0,0,0,0,0,"", "NEW DAY"))
+        if event_id == -1:
+            logging.warning("Failed to write initialization event to the database.")
     
     # Registro de arranque del programa
     timestamp_1 = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
-    csv_writer.writerow([
-        timestamp_1.split(" ")[0], timestamp_1.split(" ")[1], "-", "-", "-", "-", "-", "-", "-", SCRIPT_NAME, "Start"
-    ])
-    csv_file.flush()
+    event_id = sql_logger.insert_event(conn_test, TABLE_NAME, (ts_str, DEVICE_NAME, SCRIPT_NAME, "INFO", 0,0,0,0,0,0,"", "START"))
+    if event_id == -1:
+        logging.warning("Failed to write initialization event to the database.")
 
     while True:
         manage_disk_usage(VIDEO_DIR, MAX_USAGE_BYTES)
@@ -290,7 +271,6 @@ with dai.Device(pipeline) as device:
         if not out.isOpened():
             print(f"Error: No se pudo abrir el archivo de video para escritura: {filepath}")
             logging.error(f"No se pudo abrir el archivo de video para escritura: {filepath}")
-            csv_file.close()
             continue  # Salta este segmento
 
         start_time = time.time()
@@ -440,17 +420,14 @@ with dai.Device(pipeline) as device:
             avg_personas = int(np.ceil(np.mean(person_counts))) if person_counts else 0
             max_personas = int(np.max(person_counts)) if person_counts else 0
 
-            csv_writer.writerow([
-                timestamp_2.split(" ")[0], timestamp_2.split(" ")[1],
-                f"{pct_left:.1f}", f"{pct_center:.1f}", f"{pct_right:.1f}", f"{pct_out_roi:.1f}", avg_personas, max_personas,
-                filename, SCRIPT_NAME, "Detection"
-            ])
+            event_id = sql_logger.insert_event(conn_test, TABLE_NAME, (ts_str, DEVICE_NAME, SCRIPT_NAME, "INFO", 
+                                                f"{pct_left:.1f}", f"{pct_center:.1f}", f"{pct_right:.1f}", f"{pct_out_roi:.1f}", avg_personas, max_personas,
+                                                filename, "DETECTION"))
+            if event_id == -1:
+                logging.warning("Failed to write initialization event to the database.")                
             print(
                 f"%Left={pct_left:.1f} %Center={pct_center:.1f} %Right={pct_right:.1f} "
                 f"%!ROI={pct_out_roi:.1f} AVG_P={avg_personas} MAX_P={max_personas} "
                 f"VideoFile={filename} "
             )
-            csv_file.flush()
-
-    csv_file.close()
     cv2.destroyAllWindows()
