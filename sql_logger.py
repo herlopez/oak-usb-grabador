@@ -71,8 +71,8 @@ def insert_event(conn, table_name, event_data):
         print("Warning: No connection provided to create_table. Returning without action.")
         return -1 # Retornar None si la conexión es None
 
-    sql = f''' INSERT INTO {table_name}(timestamp, device_name, script_name, event_type, value, message)
-              VALUES(?,?,?,?,?,?) '''
+    sql = f''' INSERT INTO {table_name}(timestamp, device_name, script_name, event_type, pct_left, pct_center, pct_right, pct_out_roi, avg_count, max_count, filename, message)
+              VALUES(?,?,?,?,?,?,?,?,?,?,?,?) '''
     try:
         cur = conn.cursor()
         cur.execute(sql, event_data)
