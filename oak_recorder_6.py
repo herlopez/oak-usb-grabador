@@ -183,7 +183,13 @@ else:
         if sql_logger.create_table(conn_test, TABLE_NAME) == -1:
             logging.error("Could not create event_log table in the database. Logging to database will be disabled.")
             exit(1)
-    event_id = sql_logger.insert_event(conn_test, TABLE_NAME, (ts_str, DEVICE_NAME, SCRIPT_NAME, "INFO", 0,0,0,0,0,0,"", "START"))
+    event_id = sql_logger.insert_event(conn_test, TABLE_NAME, 
+                                       ts_str=ts_str, 
+                                       device_name=DEVICE_NAME, 
+                                       script_name=SCRIPT_NAME, 
+                                       event_type="INFO",                                         
+                                       filename="", message="START")
+    
     if event_id == -1:
         logging.warning("Failed to write initialization event to the database.")
 
@@ -214,12 +220,22 @@ with dai.Device(pipeline) as device:
     
     ts_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
     if day_folder != current_day:
-        event_id = sql_logger.insert_event(conn_test, TABLE_NAME, (ts_str, DEVICE_NAME, SCRIPT_NAME, "INFO", 0,0,0,0,0,0,"", "NEW DAY"))
+        event_id = sql_logger.insert_event(conn_test, TABLE_NAME, 
+                                           ts_str=ts_str, 
+                                           device_name=DEVICE_NAME, 
+                                           script_name=SCRIPT_NAME, 
+                                           event_type="INFO", 
+                                           message="NEW DAY")
         if event_id == -1:
             logging.warning("Failed to write initialization event to the database.")
     
     # Registro de arranque del programa
-    event_id = sql_logger.insert_event(conn_test, TABLE_NAME, (ts_str, DEVICE_NAME, SCRIPT_NAME, "INFO", 0,0,0,0,0,0,"", "START"))
+    event_id = sql_logger.insert_event(conn_test, TABLE_NAME, 
+                                       ts_str=ts_str, 
+                                       device_name=DEVICE_NAME, 
+                                       script_name=SCRIPT_NAME, 
+                                       event_type="INFO", 
+                                       message="START")
     if event_id == -1:
         logging.warning("Failed to write initialization event to the database.")
 
@@ -422,9 +438,19 @@ with dai.Device(pipeline) as device:
             max_count = int(np.max(person_counts)) if person_counts else 0
 
             ts_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
-            event_id = sql_logger.insert_event(conn_test, TABLE_NAME, (ts_str, DEVICE_NAME, SCRIPT_NAME, "DETECTION", 
-                                                f"{pct_left:.1f}", f"{pct_center:.1f}", f"{pct_right:.1f}", f"{pct_out_roi:.1f}", avg_count, max_count,
-                                                filename, ts_minute))
+            event_id = sql_logger.insert_event(conn_test, TABLE_NAME, 
+                                               ts_str=ts_str, 
+                                               device_name=DEVICE_NAME, 
+                                               script_name=SCRIPT_NAME, 
+                                               event_type="DETECTION", 
+                                               pct_left=f"{pct_left:.1f}", 
+                                               pct_center=f"{pct_center:.1f}", 
+                                               pct_right=f"{pct_right:.1f}", 
+                                               pct_out_roi=f"{pct_out_roi:.1f}", 
+                                               avg_count=avg_count, 
+                                               max_count=max_count,
+                                               filename=filename, 
+                                               message=ts_minute)
             if event_id == -1:
                 logging.warning("Failed to write initialization event to the database.")                
             if DEBUGGER: print(

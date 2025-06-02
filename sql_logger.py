@@ -66,17 +66,19 @@ def create_table(conn, table_name):
         print(f"Error creating table 'event_log': {e}")
         return -1  # Error
 
-def insert_event(conn, table_name, event_data):
+def insert_event(conn, table_name, **kwargs):
     if conn is None: # <--- GUARDA CRUCIAL
         print("Warning: No connection provided to create_table. Returning without action.")
         return -1 # Retornar None si la conexión es None
 
-    sql = f''' INSERT INTO {table_name}(timestamp, device_name, script_name, event_type, 
-                pct_left, pct_center, pct_right, pct_out_roi, avg_count, max_count, filename, message)
-              VALUES(?,?,?,?,?,?,?,?,?,?,?,?) '''
+    columns = ', '.join(kwargs.keys())
+    placeholders = ', '.join(['?'] * len(kwargs))
+    values = tuple(kwargs.values())
+    sql = f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders})"
+
     try:
         cur = conn.cursor()
-        cur.execute(sql, event_data)
+        cur.execute(sql, values)
         conn.commit()
         return cur.lastrowid  # Success: return row id
     except sqlite3.Error as e:
