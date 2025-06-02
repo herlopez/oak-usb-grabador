@@ -184,7 +184,7 @@ else:
             logging.error("Could not create event_log table in the database. Logging to database will be disabled.")
             exit(1)
     event_id = sql_logger.insert_event(conn_test, TABLE_NAME, 
-                                       ts_str=ts_str, 
+                                       timestamp=ts_str, 
                                        device_name=DEVICE_NAME, 
                                        script_name=SCRIPT_NAME, 
                                        event_type="INFO",                                         
@@ -221,7 +221,7 @@ with dai.Device(pipeline) as device:
     ts_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
     if day_folder != current_day:
         event_id = sql_logger.insert_event(conn_test, TABLE_NAME, 
-                                           ts_str=ts_str, 
+                                           timestamp=ts_str, 
                                            device_name=DEVICE_NAME, 
                                            script_name=SCRIPT_NAME, 
                                            event_type="INFO", 
@@ -231,7 +231,7 @@ with dai.Device(pipeline) as device:
     
     # Registro de arranque del programa
     event_id = sql_logger.insert_event(conn_test, TABLE_NAME, 
-                                       ts_str=ts_str, 
+                                       timestamp=ts_str, 
                                        device_name=DEVICE_NAME, 
                                        script_name=SCRIPT_NAME, 
                                        event_type="INFO", 
@@ -439,7 +439,7 @@ with dai.Device(pipeline) as device:
 
             ts_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
             event_id = sql_logger.insert_event(conn_test, TABLE_NAME, 
-                                               ts_str=ts_str, 
+                                               timestamp=ts_str, 
                                                device_name=DEVICE_NAME, 
                                                script_name=SCRIPT_NAME, 
                                                event_type="DETECTION", 
