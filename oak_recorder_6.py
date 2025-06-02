@@ -424,7 +424,7 @@ with dai.Device(pipeline) as device:
             ts_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
             event_id = sql_logger.insert_event(conn_test, TABLE_NAME, (ts_str, DEVICE_NAME, SCRIPT_NAME, "DETECTION", 
                                                 f"{pct_left:.1f}", f"{pct_center:.1f}", f"{pct_right:.1f}", f"{pct_out_roi:.1f}", avg_count, max_count,
-                                                filename, ts_minute)
+                                                filename, ts_minute))
             if event_id == -1:
                 logging.warning("Failed to write initialization event to the database.")                
             if DEBUGGER: print(
