@@ -93,8 +93,21 @@ if __name__ == '__main__':
         conn_test = create_connection(DATABASE_FILE)
         if conn_test != -1:
             create_table(conn_test, TABLE_NAME)
-            ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
-            test_event_id = insert_event(conn_test, TABLE_NAME, (ts, DEVICE_NAME, SCRIPT_NAME, "TEST_EVENT", 123.45, "This is a test message."))
+            ts_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+            test_event_id = insert_event(conn_test, TABLE_NAME, 
+                                               timestamp=ts_str, 
+                                               device_name=DEVICE_NAME, 
+                                               script_name=SCRIPT_NAME, 
+                                               event_type="TEST EVENT", 
+                                               pct_left = 1.0, 
+                                               pct_center = 2.0, 
+                                               pct_right = 3.0, 
+                                               pct_out_roi = 4.0, 
+                                               avg_count = 5.0, 
+                                               max_count = 6.0,
+                                               filename = "filename.txt", 
+                                               message = "Test event message"
+                                           )
             if test_event_id != -1:
                 print(f"Test event ID: {test_event_id}")
             
